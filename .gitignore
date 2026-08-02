@@ -1,0 +1,6 @@
+# 由 Cloudflare／Netlify 手動上傳使用的產物，不納入原始碼版本控制。
+*.zip
+
+# Windows 產生的系統檔。
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>禮儀案件管理系統</title>
+  
+  <link rel="stylesheet" href="styles.css?v=20260802-desktop-sticky-sidebar-1">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar"><div class="brand">禮儀案件管理<small>協調事項電子化原型 v1.0</small></div><nav class="nav"><button id="newCaseButton" type="button" class="active">＋　新增案件</button><button>▤　案件列表</button><button>▧　行事曆</button><button>▣　廠商管理</button></nav><div class="side-note">這是可離線測試的第一版。資料會暫存在目前瀏覽器；正式上線時可接 Supabase 雲端資料庫與 LINE 官方帳號。</div></aside>
+  <main class="main">
+    <header class="top"><div><h1>新增案件</h1><p>依《協調事項(2026)》建立案件；必填欄位標示 <span class="required">*</span></p></div><div class="actions"><button class="btn" id="sample">載入示範資料</button><button class="btn" onclick="window.print()">列印</button><button class="btn primary" id="saveTop">儲存案件</button></div></header>
+    <section class="dashboard"><div class="card"><div class="metric">案件狀態</div><div class="number" id="caseStatus">草稿</div></div><div class="card"><div class="metric">已填寫欄位</div><div class="number"><span id="completion">0</span>%</div></div><div class="card"><div class="metric">廠商待確認</div><div class="number" id="vendorCount">0</div></div><div class="card"><div class="metric">法事安排</div><div class="number" id="ritualCount">0</div></div></section>
+    <section class="section"><div class="tabs"><button class="active" data-tab="basic">基本資料</button><button data-tab="arrangement">禮儀安排</button><button data-tab="ceremony">奠禮與法事</button><button data-tab="venue">會場與後續</button><button data-tab="vendors">廠商確認單</button><button data-tab="rituals">法事確認單</button></div>
+      <form id="caseForm">
+      <div class="pane active" id="basic"><h2 class="section-title">案件基本資料</h2><p class="hint">原表的案名、性別、生／歿、相驗單位、來源、族群、地址與電話。</p><div class="form-grid"><div class="field wide"><label>案名 <span class="required">*</span></label><input required name="case_name" placeholder="例如：王○○府治喪案件"></div><div class="field"><label>案件編號 <span class="required">*</span></label><input required name="case_no" placeholder="請自行輸入案件編號"></div><div class="field"><label>性別</label><select name="gender"><option value="">請選擇</option><option>男</option><option>女</option></select></div><div class="field"><label>出生（生）</label><input type="date" name="birth_date"></div><div class="field"><label>往生（歿）</label><input type="date" name="death_date"></div><div class="field"><label>出殯日期</label><input type="date" name="funeral_date"></div><div class="field wide"><label>相驗單位</label><input name="inspection_unit" placeholder="請輸入相驗單位"></div><div class="field"><label>來源</label><input name="source" placeholder="例如：親友介紹"></div><div class="field"><label>族群</label><input name="ethnicity" placeholder="請輸入族群"></div><div class="field wide"><label>地址</label><input name="address" placeholder="請輸入地址"></div><div class="field"><label>電話</label><input type="tel" name="phone" placeholder="09xx-xxx-xxx"></div></div><div class="block"><div class="fieldset-title">聯絡人</div><p class="hint">原表預留三位聯絡人；電子版可持續新增。</p><div class="table-wrap"><table class="data-table" id="contacts"><thead><tr><th>姓名</th><th>關係</th><th>電話</th><th></th></tr></thead><tbody></tbody></table></div><button type="button" class="add" data-add="contacts">＋ 新增聯絡人</button></div></div>
+      <div class="pane" id="arrangement"><h2 class="section-title">禮儀安排與用品</h2><p class="hint">依原表的宗教儀式、地點、安葬、牌位、收賻與用品項目填寫。</p><div class="form-grid"><div class="field"><label>宗教儀式</label><input name="religion" placeholder="例如：佛教、道教、基督教"></div><div class="field wide"><label>接體地點</label><input name="pickup_location"></div><div class="field wide"><label>設靈地點</label><input name="altar_location"></div><div class="field"><label>安葬選擇</label><input name="burial_type" placeholder="火化、土葬、樹葬等"></div><div class="field wide"><label>晉塔地點</label><input name="tower_location"></div><div class="field wide"><label>葬地點</label><input name="burial_location"></div><div class="field"><label>牌位處理</label><input name="tablet_handling"></div><div class="field wide"><label>安靈地點</label><input name="spirit_location"></div></div><div class="block"><div class="form-grid"><div class="field"><label>收賻</label><input name="condolence_money"></div><div class="field"><label>毛巾</label><input name="towels"></div><div class="field"><label>小方巾</label><input name="small_towels"></div><div class="field"><label>封釘</label><div class="choice-row"><label><input type="radio" name="nailing" value="有">有</label><label><input type="radio" name="nailing" value="無">無</label></div></div><div class="field"><label>接外家</label><div class="choice-row"><label><input type="radio" name="maternal" value="有">有</label><label><input type="radio" name="maternal" value="無">無</label></div></div><div class="field"><label>浴巾</label><input name="bath_towels"></div><div class="field"><label>外家禮盒</label><input name="maternal_gifts"></div><div class="field"><label>骨罐樣式</label><input name="urn_style"></div><div class="field"><label>棺木樣式</label><input name="coffin_style"></div><div class="field"><label>訃聞樣式</label><input name="obituary_style"></div><div class="field"><label>加印記錄</label><input name="extra_printing"></div><div class="field"><label>擇日狀況</label><input name="date_selection"></div></div><div class="form-grid block"><div class="field"><label>辭生手尾</label><div class="choice-row"><label><input type="radio" name="farewell_rite" value="有">有</label><label><input type="radio" name="farewell_rite" value="無">無</label></div></div><div class="field"><label>祭棺</label><div class="choice-row"><label><input type="radio" name="coffin_rite" value="有">有</label><label><input type="radio" name="coffin_rite" value="無">無</label></div></div><div class="field"><label>敲棺頭</label><div class="choice-row"><label><input type="radio" name="coffin_tap" value="有">有</label><label><input type="radio" name="coffin_tap" value="無">無</label></div></div></div></div></div>
+      <div class="pane" id="ceremony"><h2 class="section-title">奠禮與功德法事</h2><p class="hint">原表的孝服、樂隊、靈車、料理、功德法事與日期／時間／人數安排。</p><div class="form-grid"><div class="field"><label>孝服</label><div class="choice-row"><label><input type="radio" name="mourning_dress" value="傳統">傳統</label><label><input type="radio" name="mourning_dress" value="黑袍">黑袍</label></div></div><div class="field"><label>樂隊</label><div class="choice-row"><label><input type="radio" name="band" value="國樂">國樂</label><label><input type="radio" name="band" value="西樂">西樂</label></div></div><div class="field"><label>樂隊人數</label><input type="number" min="0" name="band_people"></div><div class="field"><label>靈車</label><div class="choice-row"><label><input type="radio" name="hearse" value="中式">中式</label><label><input type="radio" name="hearse" value="西式">西式</label></div></div><div class="field"><label>雙連巾</label><input name="double_towel"></div><div class="field wide"><label>料理</label><div class="choice-row"><label><input type="checkbox" name="food_restaurant">餐廳</label><label><input type="checkbox" name="food_box">餐盒</label><label><input type="checkbox" name="food_cash">紅包</label><input name="food_note" placeholder="數量或備註"></div></div><div class="field wide"><label>功德法事供品</label><div class="choice-row"><label><input type="checkbox" name="offering_meat">葷</label><label><input type="checkbox" name="offering_veg">素</label><label><input type="checkbox" name="offering_own">自備</label></div></div></div><div class="block"><div class="fieldset-title">功德法事排程</div><div class="table-wrap"><table class="data-table" id="schedules"><thead><tr><th>項目</th><th>日期</th><th>時間</th><th>人數</th><th>地點或備註</th><th></th></tr></thead><tbody></tbody></table></div><button type="button" class="add" data-add="schedules">＋ 新增法事安排</button></div></div>
+      <div class="pane" id="venue"><h2 class="section-title">會場安排與後續追蹤</h2><p class="hint">原表後段的紙紮、沐浴更衣、壽衣、奠禮、車輛、陣頭與百日／對年資訊。</p><div class="form-grid"><div class="field wide"><label>紙紮庫錢</label><input name="paper_offerings"></div><div class="field"><label>沐浴更衣</label><div class="choice-row"><label><input type="radio" name="body_care" value="一般">一般</label><label><input type="radio" name="body_care" value="遺體SPA">遺體 SPA</label></div></div><div class="field"><label>壽衣</label><div class="choice-row"><label><input type="radio" name="shroud" value="自備">自備</label><label><input type="radio" name="shroud" value="公司">公司</label></div></div><div class="field full"><label>館外接板與儀式</label><div class="choice-row"><label><input type="radio" name="outside_board" value="有">接板有</label><label><input type="radio" name="outside_board" value="無">接板無</label><label><input type="checkbox" name="family_ceremony">家奠</label><label><input type="checkbox" name="public_ceremony">公奠</label><label><input type="checkbox" name="open_incense">自由拈香</label><label><input type="checkbox" name="flower_blessing">獻花祝福</label><label><input type="checkbox" name="memorial_service">安息禮拜</label></div></div><div class="field"><label>棚架搭設</label><input name="canopy"></div><div class="field wide"><label>奠禮地點</label><input name="ceremony_location"></div><div class="field"><label>佈置樣式</label><input name="decoration_style"></div><div class="field"><label>相片樣式</label><input name="photo_style"></div><div class="field wide"><label>奠禮供品</label><input name="ceremony_offerings"></div><div class="field"><label>茅沙準備</label><input name="maosha"></div><div class="field"><label>大燈製做</label><input name="large_lamp"></div><div class="field"><label>孝杖數量（男）</label><input type="number" min="0" name="staff_male"></div><div class="field"><label>孝杖數量（長孫）</label><input type="number" min="0" name="staff_eldest_grandson"></div><div class="field"><label>小燈數量</label><input type="number" min="0" name="small_lamps"></div><div class="field"><label>遊覽車</label><input name="tour_bus"></div><div class="field"><label>晉塔禮車</label><input name="tower_car"></div><div class="field"><label>壓棺用品</label><input name="coffin_items"></div><div class="field full"><label>陣頭</label><textarea name="procession"></textarea></div></div><div class="form-grid block"><div class="field"><label>百日</label><input type="date" name="hundred_days"></div><div class="field"><label>對年</label><input type="date" name="anniversary"></div><div class="field"><label>祖先牌位</label><input name="ancestor_tablet"></div><div class="field"><label>祖塔</label><input name="ancestor_tower"></div><div class="field"><label>塔位</label><input name="tower_slot"></div><div class="field full"><label>備註</label><textarea name="notes"></textarea></div></div></div>
+      <div class="pane" id="vendors"><h2 class="section-title">廠商確認單</h2><p class="hint">預設項目可直接修改；每一列都能選擇 LINE 群組並獨立下單。</p><div class="table-wrap"><table class="data-table" id="vendorsTable"><thead><tr><th>項目</th><th>廠商名</th><th>備註</th><th>已下單</th><th>已對單</th><th>官方 LINE</th><th></th></tr></thead><tbody></tbody></table></div><button type="button" class="add" data-add="vendorsTable">＋ 新增廠商項目</button></div>
+      <div class="pane" id="rituals"><h2 class="section-title">法事確認單</h2><p class="hint">可記錄每一項法事的廠商、人數與備註。</p><div class="table-wrap"><table class="data-table" id="ritualsTable"><thead><tr><th>項目</th><th>廠商名</th><th>人數</th><th>備註</th><th></th></tr></thead><tbody></tbody></table></div><button type="button" class="add" data-add="ritualsTable">＋ 新增法事確認</button></div>
+      <div class="footer-actions"><button type="button" class="btn" id="reset">清除本案</button><button type="submit" class="btn primary">儲存案件</button></div></form>
+    </section>
+  </main>
+</div><div class="status" id="status">已儲存</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="script.js?v=20260802-schedule-remark-reload-height-2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<script src="./supabase-integration.js?v=20260731-remember-30days"></script>
+
+
+</body></html>

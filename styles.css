@@ -1,0 +1,2707 @@
+:root{--ink:#17212b;--muted:#64748b;--line:#dfe7ef;--paper:#fff;--bg:#f4f7fa;--brand:#197a6e;--brand-dark:#115d54;--soft:#e8f5f1;--warn:#b45309}*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:"Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;color:var(--ink)}button,input,select,textarea{font:inherit}.app{display:grid;grid-template-columns:246px minmax(0,1fr);min-height:100vh}.sidebar{background:#123e3a;color:#e9f5f3;padding:28px 16px}.brand{font-size:19px;font-weight:800;letter-spacing:.04em;padding:0 12px 26px}.brand small{display:block;color:#a8cfca;font-size:12px;font-weight:500;margin-top:7px;letter-spacing:0}.nav button{width:100%;border:0;background:transparent;color:#c9dfdc;text-align:left;padding:13px 12px;border-radius:9px;cursor:pointer;margin:3px 0}.nav button:hover,.nav button.active{background:#23655e;color:white}.side-note{margin:30px 8px 0;border-top:1px solid #39756e;padding-top:18px;font-size:12px;line-height:1.7;color:#b8d6d2}.main{padding:30px clamp(18px,4vw,54px) 56px;max-width:1500px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:26px}.top h1{margin:0;font-size:27px}.top p{margin:6px 0 0;color:var(--muted);font-size:14px}.actions{display:flex;gap:9px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:white;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:700}.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-dark)}.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:27px}.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:17px;box-shadow:0 2px 5px #0f172a08}.metric{font-size:13px;color:var(--muted)}.number{font-size:29px;font-weight:800;margin-top:7px}.section{background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}.tabs{display:flex;gap:4px;align-items:flex-end;overflow:auto;padding:7px 8px 0;border-bottom:1px solid var(--line);background:#fbfcfd}.tabs button{border:1px solid var(--brand-dark);border-bottom:3px solid var(--brand-dark);border-radius:16px 16px 0 0;background:var(--brand-dark);padding:15px 19px;white-space:nowrap;color:#fff;cursor:pointer;font-size:16px;font-weight:700}.tabs button:hover{color:#fff;background:#174f49}.tabs button.active{color:#fff;background:#0b403b;border-color:#0b403b;border-bottom-color:#f5c451;font-weight:800}.pane{display:none;padding:26px}.pane.active{display:block}.section-title{font-size:19px;font-weight:800;margin:0 0 6px}.hint{font-size:13px;color:var(--muted);margin:0 0 22px}.form-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.field{grid-column:span 4;display:flex;flex-direction:column;gap:7px}.field.wide{grid-column:span 8}.field.full{grid-column:1/-1}.field label,.fieldset-title{font-size:13px;font-weight:800;color:#334155}input,select,textarea{border:1px solid #cbd5e1;border-radius:7px;padding:10px 11px;background:#fff;min-height:42px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px #197a6e1d}textarea{min-height:84px;resize:vertical}.lunar-note{display:none;margin:0;color:var(--brand-dark);font-size:12px;font-weight:700;line-height:1.35}.lunar-note.show{display:block}.block{margin:26px 0 0;padding-top:22px;border-top:1px solid var(--line)}.block:first-of-type{margin-top:0;padding-top:0;border:0}.choice-row{display:flex;gap:15px;align-items:center;flex-wrap:wrap;min-height:42px}.choice-row label{font-size:14px;color:#334155}.choice-row input{min-height:auto;accent-color:var(--brand);margin-right:5px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px}.data-table{border-collapse:collapse;min-width:700px;width:100%}.data-table th{background:#f3f7f7;text-align:left;color:#47605d;font-size:13px}.data-table th,.data-table td{border-bottom:1px solid var(--line);padding:9px}.data-table tr:last-child td{border-bottom:0}.data-table input,.data-table select{width:100%;min-height:36px;padding:7px}.data-table .lunar-note{font-size:11px;margin-top:4px}.add{border:0;background:none;color:var(--brand);font-weight:800;cursor:pointer;padding:12px 0}.footer-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}.status{position:fixed;right:22px;bottom:20px;background:#163f3b;color:#fff;padding:12px 15px;border-radius:8px;font-size:14px;box-shadow:0 8px 22px #0002;opacity:0;transform:translateY(10px);transition:.2s}.status.show{opacity:1;transform:none}.mini{color:var(--muted);font-size:12px}.required{color:#be123c}@media(max-width:850px){.app{display:block}.sidebar{padding:14px 13px}.brand{padding:0 8px 10px}.brand small,.side-note{display:none}.nav{display:flex;overflow:auto;gap:5px}.nav button{width:auto;white-space:nowrap;margin:0}.main{padding:22px 14px 42px}.top{align-items:flex-start;flex-direction:column}.dashboard{grid-template-columns:repeat(2,1fr)}.pane{padding:18px}.field,.field.wide{grid-column:span 6}.field.full{grid-column:1/-1}}@media(max-width:520px){.dashboard{grid-template-columns:1fr 1fr}.field,.field.wide{grid-column:1/-1}.top h1{font-size:23px}.actions{width:100%}.actions .btn{flex:1}.tabs button{padding:13px 14px}.footer-actions{flex-wrap:wrap}.footer-actions .btn{flex:1}}
+
+/* 所有案件表單共用一致的字級、欄位質感與互動狀態。 */
+  #caseForm input, #caseForm select, #caseForm textarea,
+  #caseForm label, #caseForm .fieldset-title, #caseForm .hint,
+  #caseForm .data-table th, #caseForm .data-table td,
+  #caseForm button, #caseForm .mini, #caseForm .lunar-note { font-size:14px !important; }
+
+  #caseForm .form-grid {
+    gap: 16px;
+  }
+
+  #caseForm .field {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  #caseForm .field > label,
+  #caseForm .fieldset-title {
+    color: #2f4643;
+    font-weight: 800;
+    letter-spacing: .01em;
+  }
+
+  #caseForm input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([name="towels"]):not([name="small_towels"]):not([name="bath_towels"]):not([name="maternal_gifts"]):not([name="coffin_style"]):not([name="urn_style"]):not([name="obituary_style"]):not([name="extra_printing"]):not([name="double_towel"]),
+  #caseForm select,
+  #caseForm textarea {
+    width: 100%;
+    border: 1px solid #ccd9df;
+    border-radius: 10px;
+    background: #fbfdfd;
+    color: #17212b;
+    padding: 10px 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  }
+
+  /* 依目前各分頁的實際內容縮短短欄位；長文字欄位維持滿寬。 */
+  #caseForm input[name="case_name"] {
+    field-sizing: content;
+    width: min(100%, var(--content-width, 12ch));
+    min-width: 8ch;
+    max-width: min(100%, 32ch);
+  }
+
+  #caseForm input[name="case_no"] {
+    field-sizing: content;
+    width: min(100%, var(--content-width, 14ch));
+    min-width: 12ch;
+    max-width: min(100%, 20ch);
+  }
+
+  #caseForm select[name="gender"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 8ch;
+    max-width: 10ch;
+  }
+
+  #caseForm input[name="source"],
+  #caseForm input[name="ethnicity"],
+  #caseForm input[name="tower_location"],
+  #caseForm input[name="burial_location"] {
+    field-sizing: content;
+    width: min(100%, var(--content-width, 14ch));
+    min-width: 10ch;
+    max-width: min(100%, 26ch);
+  }
+
+  #caseForm select[name="burial_type"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 10ch;
+    max-width: min(100%, 16ch);
+  }
+
+  #caseForm select[name="tablet_handling"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 18ch;
+    max-width: min(100%, 28ch);
+  }
+
+  #caseForm input[name$="_date"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 11ch;
+    max-width: 14ch;
+  }
+
+  #caseForm input[name="birth_time_branch"],
+  #caseForm input[name="death_time_branch"],
+  #caseForm input[name="schedule_time"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 7ch;
+    max-width: 8ch;
+  }
+
+  #caseForm input[name$="_people"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 4ch;
+    max-width: 7ch;
+  }
+
+  #caseForm input[name="pickup_location"],
+  #caseForm input[name="address"],
+  #caseForm input[name="spirit_location"],
+  #caseForm input[name="schedule_note"],
+  #caseForm input[name="ancestor_tower"],
+  #caseForm input[name="tower_slot"] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #caseForm textarea[name="notes"] {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding-bottom: 38px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  #venue .touch-resizable-field {
+    position: relative;
+  }
+
+  #venue .touch-resize-handle {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
+    padding: 0;
+    border: 1px solid #9dbbb6;
+    border-radius: 8px;
+    background: #e8f5f1;
+    color: var(--brand-dark);
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #caseForm input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+  #caseForm select:hover,
+  #caseForm textarea:hover {
+    border-color: #9dbbb6;
+    background: #fff;
+  }
+
+  #caseForm input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  #caseForm select:focus,
+  #caseForm textarea:focus {
+    border-color: var(--brand);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(25, 122, 110, .13), 0 4px 12px rgba(15, 23, 42, .06);
+  }
+
+  #caseForm input::placeholder,
+  #caseForm textarea::placeholder {
+    color: #8b9aa8;
+    opacity: 1;
+  }
+
+  #caseForm input:disabled,
+  #caseForm select:disabled,
+  #caseForm textarea:disabled {
+    color: #718096;
+    background: #f1f5f4;
+    cursor: not-allowed;
+  }
+
+  #caseForm .choice-row {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 46px !important;
+    padding: 8px 11px;
+    border: 1px solid #ccd9df;
+    border-radius: 10px;
+    background: #fbfdfd;
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+  }
+
+  #caseForm .choice-row:focus-within {
+    border-color: var(--brand);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(25, 122, 110, .13);
+  }
+
+  #caseForm .choice-row label {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 6px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  #caseForm .choice-row:has(input[type="checkbox"]) {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  #caseForm .choice-row label:hover {
+    background: var(--soft);
+  }
+
+  #caseForm input[type="checkbox"],
+  #caseForm input[type="radio"] {
+    accent-color: var(--brand);
+  }
+
+  #caseForm .block {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-color: #dce7e5;
+  }
+
+  #caseForm .fieldset-title {
+    margin-bottom: 14px;
+    padding-left: 10px;
+    border-left: 3px solid var(--brand);
+    font-size: 15px !important;
+  }
+
+  #caseForm .table-wrap {
+    border-color: #d5e1e4;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .04);
+  }
+
+  #caseForm .data-table th {
+    padding: 11px 10px;
+    min-width: 7rem;
+    max-width: 24rem;
+    background: #edf5f3;
+    color: #3d5d58;
+    font-weight: 800;
+  }
+
+  #caseForm .data-table td {
+    padding: 10px;
+    min-width: 7rem;
+    max-width: 24rem;
+    transition: background-color .16s ease;
+  }
+
+  #caseForm .data-table th:last-child,
+  #caseForm .data-table td:last-child {
+    width: 76px;
+    min-width: 68px;
+    max-width: 88px;
+  }
+
+  #contacts {
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    table-layout: auto;
+  }
+
+  #contacts th:nth-child(1),
+  #contacts td:nth-child(1) { width: auto; min-width: 10ch; max-width: 20ch; }
+  #contacts th:nth-child(2),
+  #contacts td:nth-child(2) { width: auto; min-width: 8ch; max-width: 16ch; }
+  #contacts th:nth-child(3),
+  #contacts td:nth-child(3) { width: auto; min-width: 12ch; max-width: 18ch; }
+
+  #contacts input[name="contact_name"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 10ch;
+    max-width: 20ch;
+  }
+  #contacts input[name="contact_relation"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 8ch;
+    max-width: 16ch;
+  }
+  #contacts input[name="contact_phone"] {
+    field-sizing: content;
+    width: fit-content;
+    min-width: 12ch;
+    max-width: 18ch;
+  }
+
+  #caseForm .data-table tbody tr:nth-child(even) td {
+    background: #fbfdfc;
+  }
+
+  #caseForm .data-table tbody tr:hover td {
+    background: #f3f9f7;
+  }
+
+  #caseForm .data-table input:not([type="checkbox"]):not([type="radio"]),
+  #caseForm .data-table select,
+  #caseForm .data-table textarea {
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  #caseForm .add {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 11px;
+    padding: 8px 12px;
+    border: 1px solid #bad8d2;
+    border-radius: 9px;
+    background: var(--soft);
+    transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+  }
+
+  #caseForm .add:hover {
+    border-color: var(--brand);
+    background: #dff1ec;
+    transform: translateY(-1px);
+  }
+
+  #caseForm .footer-actions {
+    padding: 16px;
+    border: 1px solid #dce7e5;
+    border-radius: 12px;
+    background: #f8fbfa;
+  }
+
+/* 農曆改併入日期欄位標籤，避免多佔一列。 */
+  #caseForm .lunar-note { display:none !important; }
+  #caseForm .lunar-inline { color:var(--brand-dark); font-weight:700; margin-left:6px; white-space:nowrap; }
+
+.case-list-view{display:none;background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px}.case-list-view h2{margin:0 0 16px;font-size:21px}.empty-list{color:var(--muted);padding:22px 0}.case-list-row{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid var(--line);padding:14px 0}.case-list-row:first-of-type{border-top:0}.case-list-row strong{display:block}.case-list-row span{font-size:13px;color:var(--muted)}.case-list-row button{white-space:nowrap}
+
+/* 移入禮儀安排的選項欄位，維持與其他表單一致的外框。 */
+  #arrangement .venue-choice .choice-row { border: 1px solid #cbd5e1; border-radius: 7px; padding: 9px 11px; min-height: 48px; background: #fff; }
+  #arrangement .band-choice .choice-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 10px; }
+  #arrangement .band-choice .people-inline { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; white-space: nowrap; }
+  #arrangement .band-choice .people-inline input[type="number"] {
+    box-sizing: border-box;
+    width: 3.5em;
+    min-width: 3.5em;
+    min-height: 32px;
+    padding: 5px 4px 5px 6px;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  #arrangement .band-choice .people-inline input[type="number"]::-webkit-inner-spin-button,
+  #arrangement .band-choice .people-inline input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+#ceremony .offering-label { font-size: 16px; }
+
+/* 農曆顯示在日期輸入框內，保留右側的日期選擇圖示。 */
+  #caseForm .field.date-with-lunar { position: relative; }
+  #caseForm .field.date-with-lunar input[type="date"] { padding-right: 118px !important; }
+  #caseForm .lunar-in-field { position: absolute; right: 39px; bottom: 12px; color: var(--brand-dark); font-size: 10px !important; font-weight: 700; pointer-events: none; white-space: nowrap; z-index: 1; }
+  #caseForm .data-table .lunar-in-field { position: static; display: block; margin-top: 3px; }
+
+#arrangement .aftercare-choice .choice-row { border: 1px solid #cbd5e1; border-radius: 7px; padding: 9px 11px; min-height: 48px; background: #fff; }
+  #arrangement .staff-options [name="staff_eldest_grandson"] { display: inline-block; }
+
+  /* 禮儀用品金額與數量欄位維持固定短欄寬，避免空白欄位把版面撐開。 */
+  #caseForm #arrangement [name="towels"],
+  #caseForm #arrangement [name="small_towels"],
+  #caseForm #arrangement [name="bath_towels"],
+  #caseForm #arrangement [name="maternal_gifts"] {
+    box-sizing: border-box;
+    width: 100px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Compact fields sized to the values shown in the completed form. */
+  #caseForm #arrangement [name="coffin_style"] { box-sizing: border-box; width: 260px; min-width: 0; max-width: 100%; }
+  #caseForm #arrangement [name="urn_style"],
+  #caseForm #arrangement [name="date_selection"],
+  #caseForm #arrangement [name="obituary_style"],
+  #caseForm #arrangement [name="extra_printing"] {
+    box-sizing: border-box;
+    width: 200px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #basic .religion-compact { grid-column: span 3; }
+  #basic .date-with-lunar input[type="date"] { padding-right: 11px !important; }
+  #basic .lunar-in-field { font-size: 12px !important; display: none !important; }
+
+/* 基本資料的農曆統一顯示於欄位名稱，不顯示在日期框內。 */
+
+/* 雙連巾與料理欄位高度一致。 */
+  #caseForm #arrangement [name="double_towel"] { min-height: 70px; width: 200px; max-width: 100%; }
+
+  /* 紙紮與庫錢清單靠左且採較緊湊寬度。 */
+  #ceremony #paperItemsTable, #ceremony #paperMoneyTable { min-width: 0; }
+  #ceremony .paper-compact .add { display: block; text-align: left; }
+
+/* 後續關懷的祖先牌位以完整表單框呈現。 */
+
+#ceremony .paper-money-row { grid-column: 1 / span 5; }
+
+/* 紙紮與庫錢採用和功德法事供品相同的滿寬欄位。 */
+  #ceremony .paper-compact {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+  #ceremony .paper-compact .table-wrap,
+  #ceremony .paper-compact .data-table {
+    width: 100%;
+  }
+  #ceremony .paper-compact .data-table {
+    table-layout: fixed;
+  }
+  #ceremony .paper-compact .data-table input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* 分隔線改在功德法事供品前，將紙紮／庫錢與供品分開。 */
+  #ceremony .paper-money-row + .field {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 12px;
+    padding-top: 18px;
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  /* 不在功德法事排程前保留分隔線。 */
+  #ceremony .paper-money-row + .field + .block {
+    border-top: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* 樂隊人數緊接西樂後方，限制為兩位數的輸入寬度。 */
+  #arrangement .band-choice .choice-row > label {
+    white-space: nowrap;
+  }
+
+/* 孝服縮短，讓樂隊的欄位有更多可用寬度。 */
+  #arrangement .form-grid:has([name="band"]) {
+    grid-template-columns: 0.82fr 1.24fr 1fr;
+  }
+  input[data-date-text] {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+/* 奠禮安排：將孝服、樂隊、靈車與雙連巾依實際作業順序排成固定欄位。 */
+  #arrangement .form-grid.service-layout-grid {
+    column-gap: 16px;
+    row-gap: 16px;
+    align-items: end;
+    grid-template-columns: 180px 260px minmax(180px, 1fr);
+  }
+  #arrangement .service-layout-grid .service-dress {
+    grid-column: 1;
+    grid-row: 1;
+    width: 180px;
+  }
+  #arrangement .service-layout-grid .service-band {
+    grid-column: 2;
+    grid-row: 1;
+    width: 260px;
+    justify-self: start;
+  }
+  @media (max-width: 780px) {
+    #arrangement .form-grid.service-layout-grid {
+      grid-template-columns: 1fr;
+    }
+    #arrangement .service-layout-grid .service-dress,
+    #arrangement .service-layout-grid .service-band,
+    #arrangement .service-layout-grid .service-double-towel,
+    #arrangement .service-layout-grid .service-hearse,
+    #arrangement .service-layout-grid .service-food {
+      grid-column: 1;
+      grid-row: auto;
+      width: auto;
+    }
+  }
+
+/* 雙連巾與料理安排在同一列，避免料理欄位過度延伸。 */
+  #arrangement .service-layout-grid .service-double-towel {
+    grid-column: 1;
+    grid-row: 2;
+    width: 200px;
+  }
+  #arrangement .service-layout-grid .service-food {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    width: 445px;
+    max-width: 100%;
+    margin-left: 24px;
+  }
+  @media (max-width: 780px) {
+    #arrangement .service-layout-grid .service-double-towel,
+    #arrangement .service-layout-grid .service-food {
+      width: auto;
+      margin-left: 0;
+    }
+  }
+
+/* 禮儀執行欄位採相同高度，第一列依序為孝服、樂隊、靈車。 */
+  #arrangement .service-layout-grid .service-hearse {
+    grid-column: 3;
+    grid-row: 1;
+    width: 180px;
+  }
+  #arrangement .service-layout-grid .service-dress .choice-row,
+  #arrangement .service-layout-grid .service-band .choice-row,
+  #arrangement .service-layout-grid .service-hearse .choice-row,
+  #arrangement .service-layout-grid .service-double-towel > input,
+  #arrangement .service-layout-grid .service-food .choice-row {
+    box-sizing: border-box;
+    min-height: 48px;
+    height: 48px;
+  }
+  #arrangement .service-layout-grid .service-double-towel > input {
+    min-height: 48px;
+  }
+
+  /* 禮儀用品與會場選項框，均與文字輸入框維持一致高度。 */
+  #arrangement .choice-row {
+    box-sizing: border-box;
+    min-height: 48px;
+  }
+  #arrangement .staff-options {
+    width: 228px;
+    gap: 8px;
+  }
+  #arrangement .field:has([name="large_lamp"]) .choice-row {
+    width: 173px;
+  }
+
+  /* Fixed desktop widths requested for the moved venue fields. */
+  #arrangement .venue-choice > .form-grid > .field:nth-of-type(5) > input,
+  #arrangement .venue-choice > .form-grid > .field:nth-of-type(8) > input,
+  #arrangement .venue-choice > .form-grid > .field.wide:nth-of-type(6) > input,
+  #arrangement .venue-choice > .form-grid > .field:nth-of-type(14) > input,
+  #arrangement .venue-choice > .form-grid > .field:nth-of-type(15) > input,
+  #arrangement .venue-choice > .form-grid > .field:nth-of-type(16) > input {
+    box-sizing: border-box;
+    width: 200px;
+    max-width: 100%;
+  }
+  #arrangement .venue-choice > .form-grid > .field:nth-of-type(13) > input {
+    box-sizing: border-box;
+    width: 100px;
+    max-width: 100%;
+  }
+  @media (max-width: 780px) {
+    #arrangement .service-layout-grid .service-hearse,
+    #arrangement .service-layout-grid .service-double-towel,
+    #arrangement .service-layout-grid .service-food {
+      grid-column: 1;
+      grid-row: auto;
+      width: auto;
+    }
+    #arrangement .field:has([name="large_lamp"]) .choice-row,
+    #arrangement .staff-options {
+      width: 100%;
+    }
+    #arrangement [name="coffin_style"],
+    #arrangement [name="urn_style"],
+    #arrangement [name="date_selection"],
+    #arrangement [name="obituary_style"],
+    #arrangement [name="extra_printing"],
+    #arrangement [name="double_towel"],
+    #arrangement .venue-choice > .form-grid > .field > input {
+      width: 100% !important;
+      max-width: 100%;
+    }
+  }
+
+/* 料理項目平均分布，備註欄維持較精簡的高度。 */
+  /* 所有區塊分隔線統一使用虛線。 */
+
+/* 保留日期選擇器的國曆文字空間，農曆統一顯示於欄位名稱。 */
+  #basic .field.date-with-lunar input[type="date"] {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding-right: 2.35rem !important;
+  }
+  #basic .field.date-with-lunar .lunar-inline,
+  #basic .field.date-with-lunar .lunar-note,
+  #paperMoneyTable .lunar-inline,
+  #paperMoneyTable .lunar-note { display: none !important; }
+
+  /* 新增庫錢的日期欄固定保留完整國曆日期與日曆按鈕。 */
+  #paperMoneyTable input[type="date"] {
+    box-sizing: border-box;
+    width: 10.5rem;
+    min-width: 10.5rem;
+    padding-right: 2.35rem;
+  }
+
+  /* 孝杖數量的兩個數字欄位維持兩個字元寬，避免原生數字控制鈕擠壓內容。 */
+  #arrangement .staff-options input[type="number"] {
+    box-sizing: content-box;
+    width: 2ch !important;
+    min-width: 2ch !important;
+    padding-left: .25rem;
+    padding-right: .25rem;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  #arrangement .staff-options input[type="number"]::-webkit-inner-spin-button,
+  #arrangement .staff-options input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+/* 庫錢清單保留足夠欄寬，避免國曆日期遭表格壓縮。 */
+  #paperMoneyTable {
+    min-width: 48rem;
+    table-layout: auto;
+  }
+  #paperMoneyTable th:nth-child(1),
+  #paperMoneyTable td:nth-child(1) { width: 12rem; min-width: 12rem; }
+  #paperMoneyTable th:nth-child(2),
+  #paperMoneyTable td:nth-child(2) { width: 7rem; min-width: 7rem; }
+  #paperMoneyTable th:last-child,
+  #paperMoneyTable td:last-child { width: 5rem; }
+  #paperMoneyTable td:first-child input[type="date"] {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+#venue .uniform-venue-field {
+    grid-column: span 4 !important;
+  }
+
+  #venue .uniform-venue-field > input,
+  #venue .uniform-venue-field > .choice-row {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    height: 52px;
+  }
+
+  #venue .uniform-venue-field > .choice-row {
+    display: flex;
+    align-items: center;
+  }
+
+  #venue .staff-options {
+    gap: .35rem;
+    padding-inline: .55rem;
+  }
+
+  #venue .staff-options input[type="number"],
+  #venue .staff-options input[type="text"] {
+    box-sizing: border-box;
+    width: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 .2rem;
+    text-align: center;
+  }
+
+  #upload-files-pane .upload-card {
+    max-width: 720px;
+    border: 1px solid #d9e3e8;
+    border-radius: 12px;
+    padding: 22px;
+    background: #fff;
+  }
+
+  #upload-files-pane .upload-picker {
+    display: inline-flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 0 18px;
+    margin: 6px 0 14px;
+    border-radius: 8px;
+    color: #fff;
+    background: #147d72;
+    cursor: pointer;
+  }
+
+  #case-attachment-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+  }
+
+  #case-attachment-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    color: #3f5060;
+    list-style: none;
+  }
+
+  #case-attachment-list .empty {
+    color: #738495;
+  }
+
+  #case-attachment-list .attachment-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 6px 8px 6px 12px;
+    border: 1px solid #d9e3e8;
+    border-radius: 9px;
+    background: #f8fafc;
+  }
+
+  #case-attachment-list .attachment-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #case-attachment-list .attachment-action {
+    min-height: 34px;
+    padding: 0 12px;
+    border: 1px solid #147d72;
+    border-radius: 7px;
+    background: #fff;
+    color: #147d72;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  #case-attachment-list .attachment-delete {
+    border-color: #c92a2a;
+    background: #c92a2a;
+    color: #fff;
+  }
+
+  @media (max-width: 740px) {
+    #venue .uniform-venue-field {
+      grid-column: 1 / -1 !important;
+    }
+  }
+
+/* 統一一般輸入欄與選單高度；核取方塊與單選鈕維持原本尺寸。 */
+  .main input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .main select {
+    box-sizing: border-box;
+    height: 42px !important;
+    min-height: 42px !important;
+  }
+
+  /* 可輸入多行的內容欄保留延展空間，但最低高度同樣為 42px。 */
+  .main textarea {
+    box-sizing: border-box;
+    min-height: 42px !important;
+  }
+
+  /* 有／無、選項等欄位與一般輸入欄對齊；內容過多時仍可自然換行。 */
+  .main .choice-row {
+    box-sizing: border-box;
+    min-height: 42px !important;
+  }
+
+  .main input[type="checkbox"],
+  .main input[type="radio"] {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+.case-overview-view {
+    display: none;
+  }
+
+  .case-overview-view.active {
+    display: block;
+  }
+
+  .overview-cards {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .overview-list {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px;
+  }
+
+  .overview-list h2 {
+    margin: 0 0 14px;
+    font-size: 20px;
+  }
+
+  .overview-row {
+    display: grid;
+    grid-template-columns: 130px minmax(180px, 1fr) 150px;
+    gap: 16px;
+    padding: 13px 0;
+    border-top: 1px solid var(--line);
+    align-items: center;
+  }
+
+  .overview-row:first-of-type {
+    border-top: 0;
+  }
+
+  .overview-row span {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  @media (max-width: 780px) {
+    .overview-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .overview-row {
+      grid-template-columns: 1fr;
+      gap: 3px;
+    }
+  }
+
+/* 「孝杖」是全新欄位，不沿用舊的孝杖數量欄位或欄位名稱。 */
+  #arrangement .new-filial-staff-field {
+    grid-column: span 4;
+  }
+
+  #arrangement .new-filial-staff-field > .choice-row {
+    box-sizing: border-box;
+    width: 100%;
+    height: 52px !important;
+    min-height: 52px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 5px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #fff;
+  }
+
+  #arrangement .new-filial-staff-field .filial-staff-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  #arrangement .new-filial-staff-field .filial-staff-option > input[type="checkbox"] {
+    margin: 0;
+  }
+
+  #arrangement .new-filial-staff-field .filial-staff-short-input {
+    box-sizing: border-box;
+    width: 3.5em !important;
+    min-width: 3.5em !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 4px 5px;
+    text-align: center;
+  }
+
+  /* 料理選項與備註輸入框都在外框內水平、垂直置中。 */
+  #arrangement .service-layout-grid .service-food .choice-row {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(3, max-content) 100.86px;
+    align-items: center;
+    justify-content: center;
+    column-gap: 22px;
+    width: 100%;
+    min-height: 52px !important;
+    padding: 5px 12px;
+  }
+
+  #arrangement .service-layout-grid .service-food .choice-row > label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    line-height: 1;
+  }
+
+  #arrangement .service-layout-grid .service-food .choice-row > label input {
+    margin: 0 6px 0 0;
+  }
+
+  #arrangement .service-layout-grid .service-food [name="food_note"] {
+    align-self: center;
+    justify-self: start;
+    box-sizing: border-box;
+    width: 100.86px !important;
+    min-width: 100.86px;
+    max-width: 100.86px;
+    height: 42px !important;
+    min-height: 42px !important;
+    margin: 0;
+  }
+
+  /* 雙連巾與料理的外框使用完全相同的高度。 */
+  #arrangement .service-layout-grid .service-double-towel > input,
+  #arrangement .service-layout-grid .service-food > .choice-row {
+    box-sizing: border-box;
+    height: 52px !important;
+    min-height: 52px !important;
+  }
+
+  #arrangement .service-layout-grid .service-double-towel,
+  #arrangement .service-layout-grid .service-food {
+    align-self: end;
+  }
+
+  @media (max-width: 780px) {
+    #arrangement .new-filial-staff-field {
+      grid-column: 1 / -1;
+    }
+
+    #arrangement .service-layout-grid .service-food .choice-row {
+      grid-template-columns: repeat(3, max-content);
+      row-gap: 10px;
+      height: auto !important;
+      min-height: 52px !important;
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    #arrangement .service-layout-grid .service-food [name="food_note"] {
+      grid-column: 1 / -1;
+      width: 100% !important;
+      min-width: 0;
+      max-width: 100%;
+      margin-top: 2px;
+    }
+  }
+
+#caseForm .exact-date-input.date-invalid {
+    border-color: #c73d3d !important;
+    box-shadow: 0 0 0 3px #c73d3d1c !important;
+    background: #fffafa;
+  }
+
+.case-list-row {
+    gap: 12px;
+  }
+  .case-list-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+  .case-list-row-actions > .btn {
+    margin: 0;
+  }
+  .btn.delete-case {
+    color: #fff;
+    background: #c62828;
+    border-color: #c62828;
+  }
+  .btn.delete-case:hover {
+    color: #fff;
+    background: #a61f1f;
+    border-color: #a61f1f;
+  }
+
+#basic .case-type-equal-field,
+  #basic .case-type-equal-field.field.wide {
+    grid-column: span 4;
+  }
+  #basic .case-type-equal-field > input,
+  #basic .case-type-equal-field > select {
+    field-sizing: content;
+    width: min(100%, var(--content-width, 14ch));
+    min-width: 10ch;
+    max-width: min(100%, 26ch);
+  }
+  #basic .location-flow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-column: 1 / -1;
+    align-items: end;
+    gap: 16px;
+  }
+  #basic .location-flow > .field {
+    grid-column: auto !important;
+  }
+  .aftercare-choice .ancestor-direction-label {
+    color: #334155;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .aftercare-choice .choice-row select[name="ancestor_direction"] {
+    flex: 0 0 72px;
+    width: 72px;
+    min-width: 72px;
+    max-width: 72px;
+    min-height: 36px;
+    padding: 6px 30px 6px 10px;
+    margin-left: 0;
+  }
+
+  #venue .aftercare-choice .choice-row {
+    box-sizing: border-box;
+    height: 46px;
+    min-height: 46px;
+    padding: 4px 11px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #fff;
+  }
+  #venue .aftercare-choice .choice-row select[name="ancestor_direction"] {
+    height: 36px;
+    min-height: 36px;
+  }
+
+#vendorsTable input[name="vendor_item"] {
+    background: #fff;
+    color: #334155;
+    font-weight: 700;
+    cursor: text;
+  }
+  #vendorsTable .vendor-line-cell select {
+    min-height: 36px;
+    margin-bottom: 8px;
+    padding: 0 30px 0 9px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+    color: var(--text);
+  }
+  #vendorsTable .vendor-line-order {
+    min-height: 36px;
+    border: 0;
+    border-radius: 7px;
+    background: #1677d2;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #vendorsTable .vendor-line-order:hover {
+    background: #0f65b6;
+  }
+  #vendorsTable .vendor-line-order:disabled {
+    cursor: wait;
+    opacity: .65;
+  }
+  #vendorsTable .vendor-line-order.vendor-line-complete,
+  #vendorsTable .vendor-line-order.vendor-line-complete:disabled {
+    background: #c92a2a;
+    color: #fff;
+    cursor: not-allowed;
+    opacity: 1;
+  }
+
+.case-overview-view .overview-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .case-search-view {
+    display: none;
+  }
+  .case-search-view.active {
+    display: block;
+  }
+  .case-search-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .case-search-input {
+    width: 100%;
+    margin: 14px 0 20px;
+  }
+  .case-search-results {
+    border-top: 1px solid var(--line);
+  }
+  .case-search-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .case-search-result strong,
+  .case-search-result span {
+    display: block;
+  }
+  .case-search-result span {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  @media (max-width: 520px) {
+    .case-overview-view .overview-cards {
+      grid-template-columns: 1fr;
+    }
+    .case-search-result {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+
+.case-list-content {
+    overflow-x: auto;
+  }
+  .case-list-column-header,
+  .case-list-data-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 100px);
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+    text-align: center;
+  }
+  .case-list-column-header {
+    width: max-content;
+    margin-top: 8px;
+    padding: 12px 148px 12px 0;
+    color: #47605d;
+    background: #f3f7f7;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .case-list-row {
+    justify-content: flex-start;
+    min-width: 680px;
+  }
+  .case-list-data-grid {
+    flex: 0 0 auto;
+    color: var(--ink);
+  }
+  .case-list-row .case-list-row-actions {
+    margin-left: 16px;
+  }
+  .case-list-data-grid span {
+    color: var(--ink);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+  .case-list-data-grid span:first-child {
+    padding-left: 0;
+    font-weight: 800;
+  }
+
+.btn.export-case {
+    color: #fff;
+    background: #2563eb;
+    border-color: #2563eb;
+  }
+  .btn.export-case:hover {
+    color: #fff;
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+
+.dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #basic .basic-half-field {
+    grid-column: span 6 !important;
+  }
+  #basic .basic-birth-date-field {
+    grid-column: 5 / span 4 !important;
+  }
+  #basic .basic-death-date-field {
+    grid-column: 9 / span 4 !important;
+  }
+  #basic .basic-ethnicity-field {
+    grid-column: 1 / span 4 !important;
+  }
+  #basic .burial-three-column-field {
+    grid-column: span 4 !important;
+  }
+
+#ceremony .ritual-schedule-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  #lineAutoOrder {
+    border: 0;
+    border-radius: 9px;
+    padding: 9px 16px;
+    background: #1677d2;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #lineAutoOrder:hover { background: #0f65b6; }
+  #lineAutoOrder:disabled {
+    cursor: wait;
+    opacity: .65;
+  }
+
+#schedules {
+    table-layout: fixed;
+    min-width: 700px;
+  }
+
+  #ceremony .schedule-heading {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  #ceremony .schedule-location-shortcuts,
+  #ceremony .schedule-location-shortcuts:focus-within {
+    min-height: 0 !important;
+    margin-left: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  #schedules .schedule-entry-header th {
+    background: #eaf4f2;
+    color: #2f5551;
+    padding: 10px 12px;
+  }
+  #schedules .schedule-remark-row > td {
+    padding: 0 12px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  #schedules .schedule-remark-row label {
+    display: block;
+    color: #2f4643;
+    font-size: 13px !important;
+    font-weight: 800;
+    margin-bottom: 5px;
+  }
+  #schedules textarea[name="schedule_remark"] {
+    box-sizing: border-box;
+    display: block;
+    width: 600px;
+    max-width: 100%;
+    height: 48px;
+    min-height: 48px;
+    padding: 12px 11px;
+    overflow: hidden;
+    resize: none;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  #schedules th,
+  #schedules td {
+    text-align: center;
+  }
+  #schedules th { vertical-align: middle; }
+  #schedules td { vertical-align: top; }
+  #schedules th:nth-child(1),
+  #schedules td:nth-child(1) { width: 130px; min-width: 110px; max-width: 160px; }
+  #schedules th:nth-child(2),
+  #schedules td:nth-child(2) { width: 125px; min-width: 115px; max-width: 150px; }
+  #schedules th:nth-child(3),
+  #schedules td:nth-child(3) { width: 86px; min-width: 80px; max-width: 100px; }
+  #schedules th:nth-child(4),
+  #schedules td:nth-child(4) { width: 68px; min-width: 60px; max-width: 80px; }
+  #schedules th:nth-child(5),
+  #schedules td:nth-child(5) { width: auto; min-width: 240px; max-width: 520px; }
+  #schedules th:nth-child(6),
+  #schedules td:nth-child(6) { width: 76px; min-width: 68px; max-width: 88px; }
+  #schedules tbody input {
+    box-sizing: border-box;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    text-align: left;
+  }
+  #schedules input[name="schedule_people"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  #schedules input[name="schedule_people"]::-webkit-inner-spin-button,
+  #schedules input[name="schedule_people"]::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
+  #schedules tbody .remove {
+    box-sizing: border-box;
+    height: 48px !important;
+    min-height: 48px !important;
+    margin: 0 !important;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 58px;
+    padding: 0 10px !important;
+    white-space: nowrap;
+  }
+
+.case-archive-navigation {
+    margin: -2px 0 8px 34px;
+    padding: 2px 0 4px 12px;
+    border-left: 1px solid rgba(255, 255, 255, .22);
+  }
+  .case-archive-navigation details {
+    margin: 2px 0;
+    color: rgba(255, 255, 255, .88);
+  }
+  .case-archive-navigation summary {
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    list-style-position: outside;
+  }
+  .case-archive-navigation button {
+    display: block !important;
+    width: calc(100% - 8px) !important;
+    min-height: 0 !important;
+    margin: 1px 0 1px 8px !important;
+    padding: 6px 9px !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: rgba(255, 255, 255, .78) !important;
+    font-size: 13px !important;
+    text-align: left !important;
+  }
+  .case-archive-navigation button:hover,
+  .case-archive-navigation button.archive-active {
+    background: rgba(255, 255, 255, .13) !important;
+    color: #fff !important;
+  }
+  .case-archive-empty {
+    padding: 5px 8px;
+    color: rgba(255, 255, 255, .58);
+    font-size: 12px;
+  }
+  .case-archive-view {
+    display: none;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .case-archive-view.active { display: block; }
+  .case-archive-table-wrap { overflow-x: auto; }
+  .case-archive-header,
+  .case-archive-data-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 100px);
+    gap: 8px;
+    align-items: center;
+    text-align: center;
+  }
+  .case-archive-header {
+    width: max-content;
+    padding: 12px 148px 12px 0;
+    color: #47605d;
+    background: #f3f7f7;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .case-archive-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    min-width: 680px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .case-archive-row:last-child { border-bottom: 0; }
+  .case-archive-data-grid {
+    flex: 0 0 auto;
+  }
+  .case-archive-data-grid > span {
+    color: var(--ink);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+  .case-archive-data-grid > span:first-child { font-weight: 800; }
+  .case-archive-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    margin-left: 16px;
+  }
+
+.cloud-auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    justify-items: center;
+    align-items: start;
+    padding: 22px;
+    overflow-y: auto;
+    background: rgba(8, 43, 40, .78);
+    backdrop-filter: blur(8px);
+  }
+  .cloud-auth-overlay.cloud-auth-hidden { display: none; }
+  .cloud-auth-card {
+    width: min(430px, 100%);
+    margin: auto 0;
+    padding: 30px;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+  }
+  .cloud-auth-brand {
+    color: #14796e;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+  .cloud-auth-card h1 {
+    margin: 8px 0 8px;
+    font-size: 27px;
+  }
+  .cloud-auth-card > p {
+    margin: 0 0 22px;
+    color: #64748b;
+    line-height: 1.65;
+  }
+  .cloud-auth-form {
+    display: none;
+    gap: 14px;
+  }
+  .cloud-auth-form.cloud-auth-form-active { display: grid; }
+  #cloudAuthForm label,
+  #cloudRecoveryForm label,
+  #cloudPasswordUpdateForm label {
+    display: grid;
+    gap: 6px;
+    color: #334155;
+    font-weight: 700;
+  }
+  #cloudAuthForm input,
+  #cloudRecoveryForm input,
+  #cloudPasswordUpdateForm input {
+    height: 46px;
+    padding: 0 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    font: inherit;
+  }
+  #cloudAuthForm button,
+  #cloudRecoveryForm button,
+  #cloudPasswordUpdateForm button {
+    height: 46px;
+    border-radius: 9px;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .cloud-auth-link {
+    justify-self: end;
+    height: auto !important;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #14796e;
+  }
+  .cloud-auth-link:hover { text-decoration: underline; }
+  .cloud-auth-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  #cloudAuthForm .cloud-auth-remember {
+    display: flex;
+    grid-template-columns: none;
+    align-items: center;
+    gap: 8px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #cloudAuthForm .cloud-auth-remember input {
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    accent-color: #167c70;
+  }
+  .cloud-auth-primary {
+    border: 0;
+    background: #167c70;
+    color: #fff;
+  }
+  .cloud-auth-secondary {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+  }
+  .cloud-auth-error {
+    min-height: 22px;
+    color: #b42318;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .cloud-auth-error.success { color: #14796e; }
+  .cloud-account {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    margin: auto 18px 18px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, .82);
+    font-size: 12px;
+  }
+  .cloud-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #5ee1a2;
+    box-shadow: 0 0 0 3px rgba(94, 225, 162, .15);
+  }
+  .cloud-account-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cloud-account-role {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .13);
+    color: #d9efec;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .cloud-account button {
+    border: 0;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .cloud-staff-management {
+    display: none;
+  }
+  .cloud-staff-management.active {
+    display: block;
+  }
+  .cloud-staff-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .cloud-staff-header h1 {
+    margin: 0;
+    font-size: 27px;
+  }
+  .cloud-staff-header p {
+    margin: 7px 0 0;
+    color: var(--muted);
+  }
+  .cloud-staff-invite-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+    align-items: end;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+  }
+  .cloud-staff-invite-form label {
+    display: grid;
+    gap: 7px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .cloud-staff-invite-form .cloud-read-only-option {
+    grid-column: 1 / -2;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    justify-self: start;
+    gap: 2px 9px;
+    min-height: 42px;
+  }
+  .cloud-read-only-option input,
+  .cloud-member-read-only input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+  }
+  .cloud-read-only-option small {
+    grid-column: 2;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .cloud-staff-message {
+    min-height: 24px;
+    padding: 10px 2px 0;
+    color: var(--brand-dark);
+    font-size: 14px;
+  }
+  .cloud-staff-message.error {
+    color: #b42318;
+  }
+  .cloud-staff-panel {
+    margin-top: 18px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+  }
+  .cloud-staff-panel h2 {
+    margin: 0 0 14px;
+    font-size: 19px;
+  }
+  .cloud-member-row,
+  .cloud-invite-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) 140px 110px auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+  .cloud-member-row:first-child,
+  .cloud-invite-row:first-child {
+    border-top: 0;
+  }
+  .cloud-member-identity,
+  .cloud-invite-row > div {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .cloud-member-identity span,
+  .cloud-invite-row span,
+  .cloud-staff-empty {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .cloud-member-read-only {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .cloud-invite-row {
+    grid-template-columns: minmax(160px, 1fr) minmax(240px, 1.4fr) auto auto;
+  }
+  .cloud-invite-row code {
+    overflow-wrap: anywhere;
+    color: #334155;
+  }
+  .cloud-member-remove {
+    border-color: #d92d20 !important;
+    background: #d92d20 !important;
+    color: #fff !important;
+  }
+  body[data-cloud-role="staff"] .case-list-view .delete-case {
+    display: none !important;
+  }
+  .cloud-read-only-banner {
+    margin: 0 0 16px;
+    padding: 11px 14px;
+    border: 1px solid #f4c97a;
+    border-radius: 10px;
+    background: #fff8e8;
+    color: #7a4b00;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  body[data-cloud-read-only="true"] [data-cloud-read-only-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 850px) {
+    .cloud-staff-header {
+      display: grid;
+    }
+    .cloud-staff-invite-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      padding: 15px;
+    }
+    .cloud-staff-invite-form .cloud-read-only-option {
+      grid-column: 1 / -1;
+    }
+    .cloud-staff-invite-form .btn {
+      width: 100%;
+    }
+    .cloud-member-row,
+    .cloud-invite-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .cloud-member-identity,
+    .cloud-invite-row > div,
+    .cloud-invite-row code {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 560px) {
+    .cloud-staff-invite-form,
+    .cloud-member-row,
+    .cloud-invite-row {
+      grid-template-columns: 1fr;
+    }
+    .cloud-member-identity,
+    .cloud-invite-row > div,
+    .cloud-invite-row code {
+      grid-column: 1;
+    }
+    .cloud-staff-panel {
+      padding: 15px;
+    }
+  }
+
+.mobile-nav-toggle { display: none; }
+
+/* 桌機版左側導覽固定於視窗內，主內容捲動時不會一起離開。 */
+@media (min-width: 851px) {
+  .app { align-items: start; }
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+/* 手機與平板版：保留桌面配置，窄螢幕改為適合觸控的單欄介面。 */
+  @media (max-width: 850px) {
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .app {
+      display: block;
+      min-width: 0;
+    }
+
+    .sidebar {
+      position: relative;
+      z-index: 20;
+      width: 100%;
+      padding: 13px 12px 10px;
+    }
+
+    .mobile-nav-toggle {
+      position: absolute;
+      top: 9px;
+      right: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid #4f817b;
+      border-radius: 9px;
+      background: #1b554f;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .sidebar.mobile-collapsed {
+      min-height: 58px;
+      padding-bottom: 8px;
+    }
+
+    .sidebar.mobile-collapsed .brand {
+      padding-bottom: 0;
+      padding-right: 96px;
+      line-height: 38px;
+    }
+
+    .sidebar.mobile-collapsed .nav,
+    .sidebar.mobile-collapsed .case-archive-navigation,
+    .sidebar.mobile-collapsed .case-folder-tools,
+    .sidebar.mobile-collapsed .case-folder-list {
+      display: none !important;
+    }
+
+    .brand {
+      padding: 0 7px 10px;
+      font-size: 17px;
+    }
+
+    .brand small,
+    .side-note,
+    .cloud-account {
+      display: none !important;
+    }
+
+    .sidebar .nav {
+      display: flex;
+      flex-wrap: wrap;
+      width: 100%;
+      gap: 6px;
+      overflow-x: visible;
+      padding-bottom: 3px;
+    }
+
+    .sidebar .nav > button {
+      flex: 0 0 auto;
+      width: auto;
+      min-height: 44px;
+      margin: 0;
+      padding: 10px 13px;
+      white-space: nowrap;
+    }
+
+    .case-archive-navigation,
+    .case-folder-tools,
+    .case-folder-list {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .case-archive-navigation {
+      display: flex;
+      align-items: flex-start;
+      flex-wrap: nowrap;
+      gap: 8px;
+      flex: 0 0 100%;
+      width: 100%;
+      min-width: 0;
+      max-height: 35vh;
+      margin: 0;
+      padding: 4px 0 4px 12px;
+      overflow-x: auto;
+      overflow-y: auto;
+    }
+
+    .case-archive-navigation details {
+      flex: 0 0 120px;
+      min-width: 120px;
+      margin: 0;
+    }
+
+    .case-archive-navigation summary {
+      padding: 8px;
+      white-space: nowrap;
+    }
+
+    .case-archive-navigation button {
+      width: 100% !important;
+      margin: 2px 0 !important;
+    }
+
+    .main {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      padding: 18px 12px 92px;
+    }
+
+    .top {
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .top h1 {
+      font-size: 23px;
+    }
+
+    .top p {
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .actions .btn {
+      width: 100%;
+      min-height: 44px;
+    }
+
+    .dashboard,
+    .overview-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 14px;
+    }
+
+    .number {
+      font-size: 25px;
+    }
+
+    .section,
+    .case-list-view,
+    .case-archive-view,
+    .case-overview-view .overview-list,
+    .case-search-view {
+      width: 100%;
+      min-width: 0;
+      border-radius: 10px;
+    }
+
+    .tabs {
+      scroll-snap-type: x proximity;
+      overscroll-behavior-x: contain;
+    }
+
+    .tabs button {
+      min-height: 48px;
+      padding: 12px 15px;
+      scroll-snap-align: start;
+    }
+
+    .pane {
+      padding: 17px 13px;
+    }
+
+    .form-grid,
+    #arrangement .form-grid.service-layout-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 13px 11px !important;
+    }
+
+    .field,
+    .field.wide,
+    .field.full,
+    #arrangement .service-layout-grid .field,
+    #arrangement .service-layout-grid .service-dress,
+    #arrangement .service-layout-grid .service-band,
+    #arrangement .service-layout-grid .service-hearse,
+    #arrangement .service-layout-grid .service-double-towel,
+    #arrangement .service-layout-grid .service-food {
+      grid-column: auto !important;
+      grid-row: auto !important;
+      width: 100% !important;
+      max-width: none !important;
+      min-width: 0 !important;
+    }
+
+    .field.full,
+    .field.wide,
+    #arrangement .service-layout-grid .service-food {
+      grid-column: 1 / -1 !important;
+    }
+
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    .choice-row {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    input,
+    select,
+    button {
+      min-height: 44px;
+    }
+
+    .choice-row {
+      height: auto !important;
+      min-height: 44px !important;
+      padding: 8px 10px;
+      gap: 10px 14px;
+    }
+
+    #arrangement > .block > .form-grid > .field > .choice-row {
+      flex-wrap: nowrap;
+    }
+
+    .choice-row input[type="checkbox"],
+    .choice-row input[type="radio"] {
+      width: 18px !important;
+      height: 18px !important;
+      min-height: 0 !important;
+    }
+
+    .block {
+      margin-top: 20px;
+      padding-top: 18px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table {
+      width: max(100%, 680px);
+      min-width: 680px;
+    }
+
+    .footer-actions {
+      position: sticky;
+      bottom: 0;
+      z-index: 12;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 22px -13px -17px;
+      padding: 12px 13px;
+      background: rgba(255, 255, 255, .96);
+      box-shadow: 0 -8px 20px rgba(15, 23, 42, .08);
+      backdrop-filter: blur(8px);
+    }
+
+    .footer-actions .btn {
+      width: 100%;
+      min-height: 46px;
+    }
+
+    .case-list-view,
+    .case-archive-view {
+      padding: 17px 13px;
+    }
+
+    .case-archive-view h2 {
+      margin: 0 0 16px;
+      font-size: 21px;
+    }
+
+    .case-archive-content {
+      border-top: 1px solid var(--line);
+    }
+
+    .case-list-content,
+    .case-archive-table-wrap {
+      overflow: visible !important;
+    }
+
+    .case-list-column-header,
+    .case-archive-header {
+      display: none !important;
+    }
+
+    .case-list-row,
+    .case-archive-row {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      gap: 12px !important;
+      padding: 16px 0 !important;
+    }
+
+    .case-list-data-grid,
+    .case-archive-data-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      gap: 12px 10px !important;
+      text-align: left !important;
+    }
+
+    .case-list-data-grid span,
+    .case-archive-data-grid span {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+      padding: 0 !important;
+      overflow-wrap: anywhere;
+    }
+
+    .case-list-data-grid span::before,
+    .case-archive-data-grid span::before {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .case-list-data-grid span:nth-child(1)::before { content: "案件編號"; }
+    .case-list-data-grid span:nth-child(2)::before { content: "案名"; }
+    .case-list-data-grid span:nth-child(3)::before { content: "來源"; }
+    .case-list-data-grid span:nth-child(4)::before { content: "方案類型"; }
+    .case-list-data-grid span:nth-child(5)::before { content: "地區"; }
+    .case-archive-data-grid span:nth-child(1)::before { content: "案件編號"; }
+    .case-archive-data-grid span:nth-child(2)::before { content: "案名"; }
+    .case-archive-data-grid span:nth-child(3)::before { content: "來源"; }
+    .case-archive-data-grid span:nth-child(4)::before { content: "方案類型"; }
+    .case-archive-data-grid span:nth-child(5)::before { content: "地區"; }
+
+    .case-list-row .case-list-row-actions,
+    .case-archive-row .case-archive-actions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+      margin: 0 !important;
+      gap: 1em;
+    }
+
+    .case-list-row-actions > .btn,
+    .case-archive-actions > .btn {
+      width: 100%;
+      min-width: 0;
+      min-height: 44px;
+      padding: 9px 7px;
+    }
+
+    .overview-row {
+      grid-template-columns: 1fr !important;
+      gap: 4px !important;
+    }
+
+    .status {
+      right: 12px;
+      bottom: 14px;
+      left: 12px;
+      text-align: center;
+    }
+
+    .cloud-auth-overlay {
+      padding: 14px;
+    }
+
+    .cloud-auth-card {
+      width: 100%;
+      padding: 22px 18px;
+      border-radius: 14px;
+    }
+  }
+
+  /* 橫向手機：不依賴最小寬度，兼容 iPhone 顯示縮放與 Safari 可用視窗。 */
+  @media (orientation: landscape) and (max-width: 1024px) and (max-height: 600px) {
+    .app {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      width: 246px;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar .nav {
+      display: block;
+      width: 100%;
+      padding-bottom: 0;
+      overflow: visible;
+    }
+
+    .sidebar .nav > button {
+      display: block;
+      width: 100%;
+      min-height: 0;
+      margin: 3px 0;
+      padding: 13px 12px;
+      white-space: normal;
+    }
+
+    .case-archive-navigation {
+      display: block;
+      width: auto;
+      max-height: none;
+      margin: 0;
+      padding: 4px 0 4px 12px;
+      overflow: visible;
+    }
+
+    .case-archive-navigation details {
+      width: auto;
+      min-width: 0;
+      margin: 0;
+    }
+
+    .mobile-nav-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 82px;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid #4f817b;
+      border-radius: 9px;
+      background: #1b554f;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .sidebar > .brand {
+      padding-right: 90px;
+    }
+
+    .sidebar.mobile-collapsed {
+      width: 62px;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    .sidebar.mobile-collapsed > :not(.mobile-nav-toggle) {
+      display: none !important;
+    }
+
+    .sidebar.mobile-collapsed .mobile-nav-toggle {
+      right: 10px;
+      width: 42px;
+      min-width: 42px;
+      padding: 7px;
+      font-size: 20px;
+    }
+
+    #arrangement > .block > .form-grid > .field > .choice-row {
+      flex-wrap: nowrap;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .form-grid,
+    #arrangement .form-grid.service-layout-grid {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .field,
+    .field.wide,
+    .field.full,
+    #arrangement .service-layout-grid .field,
+    #arrangement .service-layout-grid .service-food {
+      grid-column: 1 !important;
+    }
+
+    .dashboard,
+    .overview-cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .case-list-data-grid,
+    .case-archive-data-grid {
+      grid-template-columns: 1fr 1fr !important;
+    }
+
+    .case-list-data-grid span:nth-child(2),
+    .case-archive-data-grid span:nth-child(2) {
+      grid-column: auto;
+    }
+
+    .case-list-row .case-list-row-actions,
+    .case-archive-row .case-archive-actions {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 380px) {
+    .main {
+      padding-left: 9px;
+      padding-right: 9px;
+    }
+
+    .dashboard,
+    .overview-cards {
+      grid-template-columns: 1fr !important;
+    }
+
+    .case-list-data-grid,
+    .case-archive-data-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .case-list-row .case-list-row-actions,
+    .case-archive-row .case-archive-actions {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+.overview-list.due-overview-list h2 { margin-bottom: 14px; }
+  .overview-row.due-row { grid-template-columns: 92px minmax(0, 1fr) auto; }
+  .overview-row .due-type {
+    display: inline-flex;
+    width: fit-content;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .overview-row .due-type.due-type-memorial {
+    background: #dc2626;
+    color: #fff;
+  }
+  .overview-row .due-type.due-type-funeral {
+    background: #115d54;
+    color: #fff;
+  }
+  .overview-row .due-date { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  @media (max-width: 560px) {
+    .overview-row.due-row { grid-template-columns: 1fr auto; gap: 8px; }
+    .overview-row.due-row > strong { grid-column: 1 / -1; }
+  }
+
+#customSortToggle {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+  #customSortToggle:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+  #customSortToggle.sorting {
+    background: #197a6e;
+    border-color: #197a6e;
+    color: #fff;
+  }
+  #caseForm.custom-sort-mode tbody tr,
+  #caseForm.custom-sort-mode .sortable-field-row {
+    outline: 1px dashed #73a8a0;
+    outline-offset: -2px;
+  }
+  #caseForm .sorting-dragging {
+    opacity: .48;
+  }
+  #caseForm .row-drag-cell {
+    display: none;
+    width: 42px;
+    text-align: center;
+  }
+  #caseForm.custom-sort-mode .row-drag-cell {
+    display: table-cell;
+  }
+  #caseForm .sortable-field-row {
+    position: relative;
+  }
+  #caseForm .row-drag-handle,
+  #caseForm .field-row-drag-handle {
+    display: none;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #91b9b4;
+    border-radius: 7px;
+    background: #fff;
+    color: #197a6e;
+    cursor: grab;
+    font-size: 19px;
+    line-height: 1;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #caseForm .field-row-drag-handle {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    z-index: 2;
+  }
+  #caseForm.custom-sort-mode .row-drag-handle,
+  #caseForm.custom-sort-mode .field-row-drag-handle {
+    display: inline-grid;
+    place-items: center;
+  }
+  #caseForm .row-drag-handle:active,
+  #caseForm .field-row-drag-handle:active {
+    cursor: grabbing;
+  }
+  #vendorsTable {
+    table-layout: fixed;
+    min-width: 720px;
+  }
+  #vendorsTable > thead > tr > th,
+  #vendorsTable > tbody > tr > td {
+    text-align: center;
+    vertical-align: middle;
+    padding: 10px 8px;
+  }
+  #vendorsTable > thead > tr > th {
+    white-space: nowrap;
+    line-height: 1.25;
+  }
+  #vendorsTable > thead > tr > th:nth-child(1),
+  #vendorsTable > tbody > tr > td:nth-child(1),
+  #vendorsTable > thead > tr > th:nth-child(2),
+  #vendorsTable > tbody > tr > td:nth-child(2) {
+    width: 120px;
+  }
+  #vendorsTable > thead > tr > th:nth-child(3),
+  #vendorsTable > tbody > tr > td:nth-child(3) {
+    width: 140px;
+  }
+  #vendorsTable > thead > tr > th:nth-child(4),
+  #vendorsTable > tbody > tr > td:nth-child(4),
+  #vendorsTable > thead > tr > th:nth-child(5),
+  #vendorsTable > tbody > tr > td:nth-child(5) {
+    width: 56px;
+  }
+  #vendorsTable > thead > tr > th:nth-child(6),
+  #vendorsTable > tbody > tr > td:nth-child(6) {
+    width: 166px;
+  }
+  #vendorsTable > thead > tr > th:nth-child(7),
+  #vendorsTable > tbody > tr > td:nth-child(7) {
+    /* Let the trailing action column absorb table-wide extra space so the
+       requested item/vendor/note widths remain fixed. */
+    width: auto;
+    min-width: 54px;
+  }
+  #vendorsTable input[name="vendor_item"],
+  #vendorsTable input[name="vendor_name"] {
+    box-sizing: border-box;
+    width: 120px !important;
+    max-width: 120px;
+    margin-inline: auto;
+  }
+  #vendorsTable input[name="vendor_note"] {
+    box-sizing: border-box;
+    width: 140px !important;
+    max-width: 140px;
+    margin-inline: auto;
+  }
+  #vendorsTable .vendor-line-cell {
+    width: 166px;
+    min-width: 166px;
+  }
+  #vendorsTable .vendor-line-cell select,
+  #vendorsTable .vendor-line-order {
+    display: block;
+    box-sizing: border-box;
+    width: 150px !important;
+    max-width: 150px;
+    margin-inline: auto;
+  }
+  @media (max-width: 850px) {
+    #vendorsTable {
+      min-width: 760px;
+    }
+    #vendorsTable > thead > tr > th:nth-child(1),
+    #vendorsTable > tbody > tr > td:nth-child(1),
+    #vendorsTable > thead > tr > th:nth-child(2),
+    #vendorsTable > tbody > tr > td:nth-child(2) {
+      width: 136px;
+    }
+    #vendorsTable > thead > tr > th:nth-child(3),
+    #vendorsTable > tbody > tr > td:nth-child(3) {
+      width: 156px;
+    }
+  }
+  #lineAutoOrder.line-order-complete,
+  #lineAutoOrder.line-order-complete:disabled { background: #c92a2a; border-color: #c92a2a; color: #fff; cursor: not-allowed; opacity: 1; }
+  .ritual-schedule-heading { display:flex; align-items:center; }
+  .line-order-controls { display:flex; align-items:center; gap:8px; margin-left:auto; }
+  #lineOrderGroup { min-width:150px; height:38px; padding:0 30px 0 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--text); }
+  .date-selection-pane .table-wrap { width: fit-content; max-width: 100%; margin-top: 18px; }
+  .date-selection-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .date-selection-export { color:#fff; background:#2563eb; border-color:#2563eb; }
+  .date-selection-export:hover { color:#fff; background:#1d4ed8; border-color:#1d4ed8; }
+  .date-family-title { margin:18px 0 8px; font-size:19px; color:#334155; }
+  .date-case-summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:0 0 18px; }
+  .date-case-summary label { display:flex; flex-direction:column; gap:7px; color:#334155; font-size:13px; font-weight:800; }
+  .date-case-summary input { background:#f8fafc; color:#475569; }
+  #dateSelectionTable th { text-align:center; }
+  #dateSelectionTable td { vertical-align:middle; }
+  #dateSelectionTable .birth-cell { padding:0; }
+  #dateSelectionTable .birth-cell input { border:0; border-radius:0; box-shadow:none; }
+  #dateSelectionTable .birth-cell input + input { border-top:1px solid var(--line); }
+  #dateSelectionTable .birth-prefix { display:flex; align-items:center; }
+  #dateSelectionTable .birth-prefix span { width:32px; padding-left:9px; color:#475569; font-weight:700; }
+  #dateSelectionTable .birth-prefix input { flex:1; }
+  .date-deceased-line { display:grid; grid-template-columns:max-content minmax(180px,280px) max-content max-content max-content; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .date-deceased-line > span:nth-child(3) { margin-left:16px; }
+  .date-deceased-line > span:nth-child(6) { grid-column:1; grid-row:2; width:100%; text-align:justify; text-align-last:justify; }
+  .date-deceased-line > input:nth-child(7) { grid-column:2 / -1; grid-row:2; width:100%; }
+  .date-deceased-line input { min-height:34px; padding:6px 8px; border:0; border-bottom:1px solid #64748b; border-radius:0; background:transparent; box-shadow:none; }
+  .date-deceased-line [data-case-summary="case_name"] { field-sizing:content; justify-self:start; width:min(100%,var(--content-width,12ch)); min-width:8ch; max-width:min(100%,32ch); }
+  .date-deceased-line [data-case-summary="address"] { flex:1; min-width:220px; }
+  .date-case-age { field-sizing:content; flex:0 1 auto; width:fit-content; min-width:5ch; max-width:8ch; text-align:center; }
+  .date-life-grid { display:grid; grid-template-columns:1fr 1fr; gap:22px; padding:16px 0 6px; }
+  .date-life-card { display:grid; grid-template-columns:auto 1fr; align-items:stretch; }
+  .date-life-label { display:flex; align-items:center; padding:0 13px; font-size:24px; font-weight:800; border-right:1px solid var(--line); }
+  .date-life-details { display:grid; gap:0; }
+  .date-life-row { display:flex; align-items:center; gap:7px; min-height:40px; padding:4px 7px; border-bottom:1px solid var(--line); }
+  .date-life-row:last-child { border-bottom:0; }
+  .date-life-row input { width:48px; min-height:30px; padding:4px 5px; border:0; border-bottom:1px solid #64748b; border-radius:0; box-shadow:none; text-align:center; }
+  .date-life-row .solar-date { width:48px; }
+  .date-life-row select { min-height:32px; padding:3px 5px; }
+  .date-branch { min-width:20px; color:#197a6e; font-weight:800; }
+  #basic .field.basic-date { grid-column:span 6; }
+  #basic .date-inline { display:flex; align-items:center; gap:7px; }
+  #basic .date-inline > input:first-child { field-sizing:content; flex:0 1 auto; width:fit-content; min-width:11ch; max-width:14ch; }
+  #basic .date-inline.has-lunar-date { display:grid; grid-template-columns:max-content 150px auto; justify-content:start; }
+  #basic .date-inline.has-lunar-date > input:first-child { grid-column:1; grid-row:1; field-sizing:content; width:fit-content; min-width:11ch; max-width:14ch; }
+  #basic .basic-lunar-output { grid-column:2; grid-row:1; width:150px; min-width:0; color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
+  #basic .basic-date-extra-input { grid-column:1; grid-row:2; width:100%; min-width:11ch; max-width:14ch; }
+  #basic .basic-lunar-extra-input { grid-column:2; grid-row:2; width:150px; min-width:0; }
+  #basic .date-time-branch { display:flex; grid-column:3; grid-row:1; align-items:center; gap:6px; }
+  #basic .date-time-branch input { width:88px; min-width:88px; padding-left:8px; padding-right:8px; }
+  #basic .date-inline.has-lunar-date .date-time-branch > input:first-child { field-sizing:content; width:fit-content; min-width:7ch; max-width:8ch; }
+  #basic .date-inline.has-lunar-date .date-branch-output { flex:0 0 50px; width:50px; min-width:50px; max-width:50px; padding-left:2px; padding-right:2px; text-align:center; color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
+  @media (max-width:600px) {
+    #basic .date-inline.has-lunar-date { grid-template-columns:max-content minmax(0,150px); }
+    #basic .date-inline.has-lunar-date > input:first-child { width:fit-content; }
+    #basic .date-inline.has-lunar-date .basic-lunar-output { width:150px; max-width:100%; }
+    #basic .date-inline.has-lunar-date .basic-date-extra-input { grid-column:1; width:100%; max-width:14ch; }
+    #basic .date-inline.has-lunar-date .basic-lunar-extra-input { grid-column:2; width:150px; max-width:100%; }
+    #basic .date-inline.has-lunar-date .date-time-branch { grid-column:1/-1; grid-row:3; }
+  }
+  /* 基本資料：來源、族群同列；日期與時辰控制維持清楚且不佔滿整行。 */
+  #basic .form-grid .field.basic-source,
+  #basic .form-grid .field.basic-ethnicity { grid-column:span 4 !important; }
+  #basic .form-grid .field.basic-date { grid-column:span 6 !important; }
+  #basic .date-time-branch select { flex:0 0 11ch; width:11ch; }
+  /* 擇日表下方資料列：稱謂、姓名只保留約五個中文字的輸入空間。 */
+  #dateSelectionTable > tbody > tr > td:nth-child(1) input {
+    field-sizing:content;
+    width:81px;
+    min-width:0;
+    max-width:none;
+    text-align:center;
+    color:#3c9b08;
+    font-weight:800;
+  }
+  #dateSelectionTable > tbody > tr > td:nth-child(2) input {
+    field-sizing:content;
+    width:81px;
+    min-width:0;
+    max-width:100%;
+    text-align:center;
+  }
+  #dateSelectionTable > tbody > tr > td:nth-child(4) input[readonly] { background:#f8fafc; color:#155e75; font-weight:700; }
+  #dateSelectionTable { width:514px; min-width:514px; max-width:100%; table-layout:fixed; border-collapse:collapse; }
+  #dateSelectionTable th, #dateSelectionTable td { border:1px solid var(--line); }
+  #dateSelectionTable > thead > tr > th:nth-child(1), #dateSelectionTable > tbody > tr > td:nth-child(1) { width:100px; }
+  #dateSelectionTable > thead > tr > th:nth-child(2), #dateSelectionTable > tbody > tr > td:nth-child(2) { width:100px; }
+  #dateSelectionTable > thead > tr > th:nth-child(3), #dateSelectionTable > tbody > tr > td:nth-child(3) { width:250px; }
+  #dateSelectionTable > thead > tr > th:nth-child(4), #dateSelectionTable > tbody > tr > td:nth-child(4) { width:64px; min-width:64px; }
+  #dateSelectionTable > tbody > tr > td:nth-child(4) input { width:100%; min-width:0; }
+  #dateSelectionTable > tbody > tr > td { padding:8px; vertical-align:middle; }
+  #dateSelectionTable > tbody > tr > td:nth-child(3) { padding:0; }
+  #dateSelectionTable .life-mini-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  #dateSelectionTable .life-mini-table th, #dateSelectionTable .life-mini-table td { padding:0; border:1px solid var(--line); background:transparent; text-align:left; }
+  #dateSelectionTable .life-mini-table th { width:5px; padding:0; color:#475569; font-weight:700; text-align:center; }
+  #dateSelectionTable .life-mini-table input {
+    field-sizing:content;
+    width:150px;
+    min-width:0;
+    max-width:100%;
+    min-height:34px;
+    border:0;
+    border-radius:0;
+    box-shadow:none;
+  }
+  #dateSelectionTable .life-mini-table input[readonly] { background:#f8fafc; color:#155e75; font-weight:700; }
+  .date-basic-summary-row { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; padding:14px 0 0; }
+  .date-basic-summary-field { display:flex; flex-direction:column; gap:7px; min-width:0; }
+  .date-basic-summary-field label { color:#334155; font-size:13px; font-weight:800; }
+  .date-basic-summary-values { display:grid; grid-template-columns:max-content 150px max-content 50px; gap:7px; justify-content:start; }
+  .date-basic-summary-values input { min-width:0; min-height:42px; padding:10px 11px; border:1px solid #cbd5e1; border-radius:7px; background:#fff; box-shadow:none; }
+  .date-basic-summary-values .date-basic-summary { field-sizing:content; width:fit-content; min-width:11ch; max-width:14ch; }
+  .date-basic-summary-values .date-basic-summary-lunar { width:150px; color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
+  .date-basic-summary-values .date-basic-summary-time { field-sizing:content; width:fit-content; min-width:7ch; max-width:8ch; }
+  .date-basic-summary-values .date-basic-summary-branch { width:50px; padding-left:2px; padding-right:2px; text-align:center; color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
+  .ritual-schedule-heading .line-order-controls #lineOrderGroup { margin-left:0; }
+  @media (max-width: 850px) {
+    #basic .form-grid {
+      grid-template-columns:minmax(0,1fr) !important;
+    }
+    #basic .form-grid > .field,
+    #basic .form-grid .field.basic-source,
+    #basic .form-grid .field.basic-ethnicity,
+    #basic .form-grid .field.basic-date,
+    #basic .form-grid .field.case-type-equal-field,
+    #basic .form-grid .field.basic-half-field,
+    #basic .form-grid .field.basic-birth-date-field,
+    #basic .form-grid .field.basic-death-date-field,
+    #basic .form-grid .field.basic-ethnicity-field,
+    #basic .form-grid .field.burial-three-column-field {
+      grid-column:1 / -1 !important;
+      width:100% !important;
+      max-width:none !important;
+    }
+    #basic .location-flow {
+      grid-template-columns:minmax(0,1fr);
+      width:100%;
+    }
+  }
+  @media (max-width: 560px) {
+    .date-deceased-line {
+      display:grid;
+      grid-template-columns:max-content minmax(0,1fr) max-content max-content max-content;
+      gap:10px 8px;
+      align-items:center;
+    }
+    .date-deceased-line > span:nth-child(1) { grid-column:1; grid-row:1; }
+    .date-deceased-line > input:nth-child(2) { grid-column:2; grid-row:1; }
+    .date-deceased-line > span:nth-child(3) { grid-column:3; grid-row:1; margin-left:0; }
+    .date-deceased-line > input:nth-child(4) { grid-column:4; grid-row:1; }
+    .date-deceased-line > span:nth-child(5) { grid-column:5; grid-row:1; }
+    .date-deceased-line > span:nth-child(6) { grid-column:1; grid-row:2; }
+    .date-deceased-line > input:nth-child(7) { grid-column:2 / -1; grid-row:2; }
+    .date-deceased-line [data-case-summary="address"] {
+      width:100% !important;
+      min-width:0;
+      max-width:none;
+    }
+    .date-deceased-line [data-case-summary="case_name"] {
+      width:min(100%,var(--content-width,12ch)) !important;
+      min-width:8ch;
+      max-width:100%;
+    }
+    .date-deceased-line .date-case-age {
+      width:fit-content !important;
+      min-width:5ch;
+      max-width:8ch;
+    }
+    .date-basic-summary-values { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  }
+  @media (max-width: 560px) { #customSortToggle { width: 100%; } }
+
+/* 基本資料桌機版：日期另起一列；治喪與安葬區使用固定 24px 欄距。 */
+@media (min-width: 851px) {
+  #basic .form-grid > .basic-birth-date-field {
+    grid-column: 1 / span 6 !important;
+  }
+
+  #basic .form-grid > .basic-death-date-field {
+    grid-column: 1 / -1 !important;
+    width: max-content;
+    max-width: 100%;
+  }
+
+  #basic .block > .form-grid {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+    column-gap: 24px;
+  }
+
+  #basic .location-flow {
+    grid-column: 1 / -1;
+    column-gap: 24px;
+  }
+
+  #basic .block > .form-grid > .burial-three-column-field {
+    grid-column: auto !important;
+    width: max-content;
+  }
+
+  #basic .block > .form-grid > .field:has([name="tablet_handling"]) {
+    grid-column: 1 !important;
+    width: max-content;
+  }
+
+  #basic .block > .form-grid > .field:has([name="spirit_location"]) {
+    grid-column: 2 / -1 !important;
+    width: 500px;
+    max-width: 100%;
+  }
+
+  #basic [name="spirit_location"] {
+    width: 500px;
+    max-width: 100%;
+  }
+}

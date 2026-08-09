@@ -13,6 +13,51 @@
 ;
 
 const K='funeral-case-draft-v1'; const $=s=>document.querySelector(s); const form=$('#caseForm');
+let hasUnsavedCaseChanges = false;
+function markCaseDirty() {
+  hasUnsavedCaseChanges = true;
+  setCaseStatus('輸入中');
+}
+function clearCaseDirty() {
+  hasUnsavedCaseChanges = false;
+}
+function markCaseSaved() {
+  clearCaseDirty();
+  setCaseStatus('已儲存');
+}
+function confirmDiscardUnsavedCase() {
+  if (!hasUnsavedCaseChanges) return true;
+  const shouldLeave = window.confirm('此案件尚未儲存，確定要離開嗎？');
+  if (shouldLeave) clearCaseDirty();
+  return shouldLeave;
+}
+window.__hasUnsavedCaseChanges = () => hasUnsavedCaseChanges;
+window.__markCaseDirty = markCaseDirty;
+window.__markCaseSaved = markCaseSaved;
+window.__confirmDiscardUnsavedCase = confirmDiscardUnsavedCase;
+
+window.addEventListener('beforeunload', event => {
+  if (!hasUnsavedCaseChanges) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+
+document.addEventListener('click', event => {
+  if (!hasUnsavedCaseChanges) return;
+  const formSection = document.querySelector('.section');
+  if (!formSection || window.getComputedStyle(formSection).display === 'none') return;
+  const target = event.target instanceof Element ? event.target : null;
+  const navigationTarget = target?.closest([
+    '.sidebar .nav > button',
+    '.case-archive-navigation button',
+    '.case-list-view .case-list-row button:not(.delete-case):not(.export-case):not(.export-word-case)',
+    '.case-search-results [data-search-index]',
+    '.case-archive-row .case-archive-actions button:not(.delete-case):not(.export-case):not(.export-word-case)'
+  ].join(','));
+  if (!navigationTarget || confirmDiscardUnsavedCase()) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}, true);
 const vendorItems=['接體','冰箱','靈堂','棚架','花山','椅套','擇日','棺木','骨罐','協助驗屍','洗穿化殮','壽衣','司儀','禮生','樂隊','扶棺人員','靈車','供品','素菜','交通車','紙紮','庫錢','投影設備'];
 function input(n,type='text',value=''){return `<input type="${type}" ${n?`name="${n}"`:''} value="${value}">`}
 function remove(){return '<button type="button" class="btn remove" style="padding:6px 9px">刪除</button>'}
@@ -131,8 +176,8 @@ function addRow(table, values = {}) {
     });
   }
   if (table === 'vendorsTable') {
-    const vendorRowIndex = document.querySelector('#vendorsTable tbody')?.rows.length || 0;
-    const vendorItem = String(values.item || vendorItems[vendorRowIndex] || '');
+    // 新增廠商列必須保持空白；預設項目只由 fillDefaults 初次建立時明確帶入。
+    const vendorItem = String(values.item || '');
     tr.innerHTML = `
       <td><input name="vendor_item" type="text" value="${vendorItem}" aria-label="廠商項目"></td>
       <td>${input('vendor_name','text',values.vendor||'')}</td>
@@ -281,12 +326,19 @@ function load(data) {
   (data.vendors || []).forEach(values => addRow('vendorsTable', values));
   (data.rituals || []).forEach(values => addRow('ritualsTable', values));
   fillDefaults({ seedVendors: false });
+  refreshAutoGrowingTextarea(form.elements.notes);
   syncLunarDates();
   window.refreshContentSizedFields?.();
+  setTimeout(() => {
+    markCaseSaved();
+    window.__refreshVenueLunarLabels?.();
+  }, 0);
   updateMetrics();
 }
 function flash(t='已儲存案件草稿'){let s=$('#status');s.textContent=t;s.classList.add('show');setTimeout(()=>s.classList.remove('show'),2400)}
-function save(){let d=collect();localStorage.setItem(K,JSON.stringify(d));$('#caseStatus').textContent='已儲存';flash()}
+function setCaseStatus(status){const element=$('#caseStatus');if(element) element.textContent=status}
+function syncEditCaseTitle(){const title=document.querySelector('.top h1');if(!title)return;const name=String(form.elements.case_name?.value||'').trim();if(window.__editingCaseNo||title.textContent.trim().startsWith('編輯案件'))title.textContent=name?`編輯案件｜${name}`:'編輯案件'}
+function save(){let d=collect();localStorage.setItem(K,JSON.stringify(d));markCaseSaved();flash()}
 function updateMetrics(){
   let required=[...form.querySelectorAll('[required]')],
       filled=required.filter(x=>x.value).length,
@@ -296,11 +348,24 @@ function updateMetrics(){
   const vendorCount=$('#vendorCount');
   const ritualCount=$('#ritualCount');
   const ritualTable=$('#schedules tbody');
+  const caseNameField=form.elements.case_name;
+  const caseNameLabel=caseNameField?.closest('.field')?.querySelector(':scope > label');
+  if(caseNameLabel) caseNameLabel.innerHTML='<span>案名</span> <span class="required">*</span>';
   if(completion) completion.textContent=Math.min(100,Math.round(((filled+extra)/(required.length+total))*100));
   if(vendorCount) vendorCount.textContent=[...form.querySelectorAll('[name=vendor_confirmed]')].filter(x=>!x.checked).length;
   if(ritualCount) ritualCount.textContent=ritualTable?[...ritualTable.querySelectorAll('tr.schedule-main-row')].filter(row=>[...row.querySelectorAll('input,select,textarea')].some(control=>control.type==='checkbox'||control.type==='radio'?control.checked:String(control.value||'').trim()!=='')).length:0;
+  syncEditCaseTitle();
 }
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{addRow(b.dataset.add);updateMetrics()});form.addEventListener('input',updateMetrics);form.addEventListener('change',()=>{syncLunarDates();updateMetrics()});form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())save()});$('#saveTop').onclick=()=>{if(form.reportValidity())save()};$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();updateMetrics();flash('已清除草稿')}};$('#sample').onclick=()=>{load({fields:{case_name:'王○○府治喪案件',gender:'男',birth_date:'1948-04-12',death_date:'2026-07-20',funeral_date:'2026-07-27',inspection_unit:'桃園市立殯儀館',source:'親友介紹',religion:'佛教',pickup_location:'桃園區住家',altar_location:'桃園市立殯儀館',burial_type:'火化',tower_location:'桃園市○○納骨塔',mourning_dress:'傳統',band:'國樂',band_people:'5',hearse:'中式',body_care:'一般',shroud:'公司'},contacts:[{name:'王大明',relation:'長子',phone:'0912-345-678'}],schedules:[{item:'頭七法事',date:'2026-07-26',time:'09:00',people:'12',note:''}],vendors:vendorItems.map((item,i)=>({item,vendor:i===0?'○○禮儀':'',note:'',notified:i===0,confirmed:false})),rituals:[{item:'頭七法事',vendor:'○○法師',people:'12',note:''}]});flash('已載入示範資料')};let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else fillDefaults();syncLunarDates();updateMetrics();
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});
+document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{addRow(b.dataset.add);updateMetrics()});
+form.addEventListener('input',()=>{markCaseDirty();updateMetrics()});
+form.addEventListener('change',()=>{markCaseDirty();syncLunarDates();updateMetrics()});
+form.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(target?.closest('[data-add],.add,.remove'))markCaseDirty()},true);
+form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())save()});
+$('#saveTop').onclick=()=>{if(form.reportValidity())save()};
+$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
+$('#sample').onclick=()=>{load({fields:{case_name:'王○○府治喪案件',gender:'男',birth_date:'1948-04-12',death_date:'2026-07-20',funeral_date:'2026-07-27',inspection_unit:'桃園市立殯儀館',source:'親友介紹',religion:'佛教',pickup_location:'桃園區住家',altar_location:'桃園市立殯儀館',burial_type:'火化',tower_location:'桃園市○○納骨塔',mourning_dress:'傳統',band:'國樂',band_people:'5',hearse:'中式',body_care:'一般',shroud:'公司'},contacts:[{name:'王大明',relation:'長子',phone:'0912-345-678'}],schedules:[{item:'頭七法事',date:'2026-07-26',time:'09:00',people:'12',note:''}],vendors:vendorItems.map((item,i)=>({item,vendor:i===0?'○○禮儀':'',note:'',notified:i===0,confirmed:false})),rituals:[{item:'頭七法事',vendor:'○○法師',people:'12',note:''}]});markCaseDirty();flash('已載入示範資料')};
+let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else{fillDefaults();clearCaseDirty();setCaseStatus('輸入中')};syncLunarDates();updateMetrics();
 
 (() => {
   const scheduleBlock = document.querySelector('#schedules')?.closest('.block');
@@ -694,6 +759,8 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.que
       caseNumber.placeholder = '請自行輸入案件編號';
       syncLunarDates();
       updateMetrics();
+      clearCaseDirty();
+      setCaseStatus('輸入中');
       window.scrollTo({top:0,behavior:'smooth'});
     });
     listButton?.addEventListener('click', () => { renderList(); setFormVisible(false); window.scrollTo({top:0,behavior:'smooth'}); });
@@ -1063,62 +1130,8 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     if (notesLabel) notesLabel.textContent = '服務履歷';
 
     const notes = notesField?.querySelector('textarea[name="notes"]');
-    if (notes && !notesField.querySelector('.touch-resize-handle')) {
-      notesField.classList.add('touch-resizable-field');
-      const handle = document.createElement('button');
-      handle.type = 'button';
-      handle.className = 'touch-resize-handle';
-      handle.setAttribute('aria-label', '拖曳調整服務履歷高度');
-      handle.textContent = '↕';
-      notesField.append(handle);
-
-      let startY = 0;
-      let startHeight = 0;
-      let resizing = false;
-      const beginResize = clientY => {
-        resizing = true;
-        startY = clientY;
-        startHeight = notes.getBoundingClientRect().height;
-      };
-      const moveResize = clientY => {
-        if (!resizing) return;
-        notes.style.height = `${Math.max(84, startHeight + clientY - startY)}px`;
-      };
-      const finishResize = () => {
-        resizing = false;
-      };
-
-      handle.addEventListener('pointerdown', event => {
-        beginResize(event.clientY);
-        handle.setPointerCapture?.(event.pointerId);
-        event.preventDefault();
-      });
-      window.addEventListener('pointermove', event => {
-        if (!resizing) return;
-        moveResize(event.clientY);
-        event.preventDefault();
-      });
-      const finishPointerResize = event => {
-        finishResize();
-        handle.releasePointerCapture?.(event.pointerId);
-      };
-      window.addEventListener('pointerup', finishPointerResize);
-      window.addEventListener('pointercancel', finishPointerResize);
-
-      handle.addEventListener('touchstart', event => {
-        const touch = event.touches[0];
-        if (!touch) return;
-        beginResize(touch.clientY);
-        event.preventDefault();
-      }, { passive: false });
-      window.addEventListener('touchmove', event => {
-        const touch = event.touches[0];
-        if (!resizing || !touch) return;
-        moveResize(touch.clientY);
-        event.preventDefault();
-      }, { passive: false });
-      window.addEventListener('touchend', finishResize);
-      window.addEventListener('touchcancel', finishResize);
+    if (notes) {
+      configureAutoGrowingTextarea(notes);
     }
   })();
 
@@ -1266,7 +1279,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       const sync = () => { hidden.value = [...tbody.querySelectorAll('input')].map(input => input.value).filter(Boolean).join('\n'); };
       const addRow = value => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td><input type="number" min="0" name="paper_money_item" value="${String(value || '').replace(/"/g, '&quot;')}"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>`;
+        row.innerHTML = `<td><input type="number" min="0" inputmode="numeric" name="paper_money_item" value="${String(value || '').replace(/"/g, '&quot;')}"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>`;
         row.querySelector('input').addEventListener('input', sync);
         row.querySelector('.remove').addEventListener('click', () => { row.remove(); sync(); updateMetrics(); });
         tbody.append(row);
@@ -1297,7 +1310,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     };
     const addRow = values => {
       const row = document.createElement('tr');
-      row.innerHTML = '<td><input type="date" name="paper_money_date"></td><td><input type="number" min="0" name="paper_money_item"></td><td><input name="paper_money_location"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>';
+      row.innerHTML = '<td><input type="date" name="paper_money_date"></td><td><input type="number" min="0" inputmode="numeric" name="paper_money_item"></td><td><input name="paper_money_location"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>';
       row.querySelector('[name="paper_money_date"]').value = values?.date || '';
       row.querySelector('[name="paper_money_item"]').value = values?.quantity || '';
       row.querySelector('[name="paper_money_location"]').value = values?.location || '';
@@ -1952,12 +1965,10 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       document.dispatchEvent(new CustomEvent('funeral:case-saved'));
       if (editingCaseNo) {
         window.__editingCaseNo = data.fields.case_no;
-        const title = document.querySelector('.top h1');
-        if (title) title.textContent = '編輯案件';
+        syncEditCaseTitle();
       }
 
-      const caseStatus = document.getElementById('caseStatus');
-      if (caseStatus) caseStatus.textContent = '已儲存';
+      markCaseSaved();
       updateMetrics();
       showSaveStatus(`案件 ${data.fields.case_no} 已儲存`);
       return true;
@@ -2025,6 +2036,8 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     updateMetrics();
     window.setTimeout(() => {
       if (typeof window.prepareAllCaseDates === 'function') window.prepareAllCaseDates();
+      window.__refreshVenueLunarLabels?.();
+      markCaseSaved();
     }, 0);
     return true;
   };
@@ -2214,6 +2227,7 @@ document.getElementById('saveTop')?.remove();
     // Editing an existing case must preserve deleted vendor rows.
     // Default vendor items are only seeded when a brand-new case is created.
     fillDefaults({ seedVendors: false });
+    refreshAutoGrowingTextarea(form.elements.notes);
 
     const dateSelectionBody = document.querySelector('#dateSelectionTable tbody');
     if (dateSelectionBody) {
@@ -2233,8 +2247,7 @@ document.getElementById('saveTop')?.remove();
     if (dashboard) dashboard.style.display = '';
     if (section) section.style.display = '';
 
-    const title = document.querySelector('.top h1');
-    if (title) title.textContent = '編輯案件';
+    syncEditCaseTitle();
 
     document.querySelectorAll('.tabs button, .pane').forEach(element => element.classList.remove('active'));
     document.querySelector('.tabs button[data-tab="basic"]')?.classList.add('active');
@@ -2253,7 +2266,11 @@ document.getElementById('saveTop')?.remove();
     window.__refreshLineOrderButton?.();
     const customSortToggle = document.getElementById('customSortToggle');
     if (customSortToggle) customSortToggle.hidden = false;
-    window.setTimeout(() => window.__syncDateCaseSummary?.(), 0);
+    window.setTimeout(() => {
+      window.__syncDateCaseSummary?.();
+      window.__refreshVenueLunarLabels?.();
+      markCaseSaved();
+    }, 0);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   window.__openCaseForEdit = populateFormDirectly;
@@ -2274,7 +2291,7 @@ document.getElementById('saveTop')?.remove();
    */
   document.addEventListener('click', event => {
     const target = event.target instanceof Element ? event.target : null;
-    const button = target?.closest('.case-list-view .case-list-row button:not(.delete-case):not(.export-case)');
+    const button = target?.closest('.case-list-view .case-list-row button:not(.delete-case):not(.export-case):not(.export-word-case)');
     if (!button) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -2499,6 +2516,8 @@ document.getElementById('saveTop')?.remove();
       updateLunarLabel(document.querySelector(`#venue [name="${name}"]`));
     });
   };
+
+  window.__refreshVenueLunarLabels = updateAll;
 
   document.getElementById('caseForm')?.addEventListener('input', event => {
     if (dateNames.has(event.target?.name)) {
@@ -3393,20 +3412,223 @@ document.getElementById('saveTop')?.remove();
   };
   window.__downloadCasePdf = downloadRecordPdf;
 
+  const wordValue = value => {
+    if (Array.isArray(value)) return value.filter(Boolean).join('、');
+    if (value === true) return '是';
+    if (value === false || value == null) return '';
+    return String(value);
+  };
+
+  const wordChoice = (selected, value, label = value) =>
+    `${String(selected || '') === value ? '☑' : '□'}${label}`;
+
+  const buildWordTemplateData = record => {
+    const fields = record?.fields || {};
+    const data = {};
+    Object.entries(fields).forEach(([name, value]) => {
+      data[name] = wordValue(value);
+    });
+
+    const value = name => wordValue(fields[name]);
+    const contacts = Array.isArray(record?.contacts) ? record.contacts : [];
+    const schedules = Array.isArray(record?.schedules) ? record.schedules : [];
+    const vendors = (Array.isArray(record?.vendors) ? record.vendors : [])
+      .filter(item => item?.item || item?.vendor || item?.note);
+    const rituals = (Array.isArray(record?.rituals) ? record.rituals : [])
+      .filter(item => item?.item || item?.vendor || item?.people || item?.note);
+
+    data.case_no_summary = `案件編號：${value('case_no')}`;
+    data.address_phone = [
+      value('address'),
+      value('phone') ? `電話：${value('phone')}` : ''
+    ].filter(Boolean).join('　');
+    data.vendor_header = [
+      `亡者姓名：${value('case_name')}`,
+      `出殯日期：${value('funeral_date')}`,
+      `出殯地點：${value('ceremony_location') || value('altar_location')}`
+    ].join('　');
+
+    for (let index = 0; index < 3; index += 1) {
+      const slot = index + 1;
+      const contact = contacts[index] || {};
+      data[`contact_${slot}_name`] = wordValue(contact.name);
+      data[`contact_${slot}_relation`] = wordValue(contact.relation);
+      data[`contact_${slot}_phone`] = wordValue(contact.phone);
+    }
+
+    data.nailing_summary = `${wordChoice(fields.nailing, '有')}　${wordChoice(fields.nailing, '無')}`;
+    data.maternal_summary = `${wordChoice(fields.maternal, '有')}　${wordChoice(fields.maternal, '無')}`;
+    data.farewell_rite_summary = `${wordChoice(fields.farewell_rite, '有')}　${wordChoice(fields.farewell_rite, '無')}`;
+    data.coffin_rite_summary = `${wordChoice(fields.coffin_rite, '有')}　${wordChoice(fields.coffin_rite, '無')}`;
+    data.coffin_tap_summary = `${wordChoice(fields.coffin_tap, '有')}　${wordChoice(fields.coffin_tap, '無')}`;
+    data.mourning_traditional = wordChoice(fields.mourning_dress, '傳統');
+    data.mourning_black = wordChoice(fields.mourning_dress, '黑袍');
+    data.band_traditional = `${wordChoice(fields.band, '國樂')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
+    data.band_western = `${wordChoice(fields.band, '西樂')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
+    data.hearse_chinese = wordChoice(fields.hearse, '中式');
+    data.hearse_western = wordChoice(fields.hearse, '西式');
+    data.food_summary = [
+      `${fields.food_restaurant ? '☑' : '□'}餐廳`,
+      `${fields.food_box ? '☑' : '□'}餐盒`,
+      `${fields.food_cash ? '☑' : '□'}紅包`,
+      value('food_note')
+    ].filter(Boolean).join('　');
+    data.offering_summary = `功德法事（供品 ${fields.offering_meat ? '☑' : '□'}葷　${fields.offering_veg ? '☑' : '□'}素　${fields.offering_own ? '☑' : '□'}自備）`;
+    data.body_care_summary = `${wordChoice(fields.body_care, '一般')}　${wordChoice(fields.body_care, '遺體SPA', '遺體SPA')}`;
+    data.shroud_summary = `${wordChoice(fields.shroud, '自備')}　${wordChoice(fields.shroud, '公司')}`;
+    data.outside_board_summary = [
+      '館外接板',
+      wordChoice(fields.outside_board, '有'),
+      wordChoice(fields.outside_board, '無'),
+      `${fields.family_ceremony ? '☑' : '□'}家奠`,
+      `${fields.public_ceremony ? '☑' : '□'}公奠`,
+      `${fields.open_incense ? '☑' : '□'}自由拈香`,
+      `${fields.flower_blessing ? '☑' : '□'}獻花祝福`,
+      `${fields.memorial_service ? '☑' : '□'}安息禮拜`
+    ].join('　');
+    data.staff_summary = `男：${value('staff_male')}　長孫：${value('staff_eldest_grandson')}`;
+    data.procession_summary = `陣頭：${value('procession')}`;
+
+    for (let index = 0; index < 8; index += 1) {
+      const slot = String(index + 1).padStart(2, '0');
+      const schedule = schedules[index] || {};
+      data[`schedule_${slot}_item`] = wordValue(schedule.item);
+      data[`schedule_${slot}_detail`] = [
+        wordValue(schedule.date),
+        wordValue(schedule.time),
+        schedule.people ? `${wordValue(schedule.people)}人` : '',
+        wordValue(schedule.note),
+        wordValue(schedule.remark)
+      ].filter(Boolean).join('　');
+    }
+
+    const normalizeVendorItem = item => String(item || '').replace(/\s+/g, '');
+    const usedVendorIndexes = new Set();
+    const takeVendor = aliases => {
+      const normalizedAliases = aliases.map(normalizeVendorItem);
+      const index = vendors.findIndex((vendor, vendorIndex) =>
+        !usedVendorIndexes.has(vendorIndex) &&
+        normalizedAliases.includes(normalizeVendorItem(vendor.item))
+      );
+      if (index < 0) return {};
+      usedVendorIndexes.add(index);
+      return vendors[index];
+    };
+    const leftVendorSlots = [
+      ['接體', '接體車'], ['冰箱'], ['靈堂', '豎靈台'], ['棚架'], ['花山'], ['椅套'],
+      ['擇日', '擇日師'], ['棺木'], ['骨罐'], ['協助驗屍'], ['洗穿化殮'], ['壽衣']
+    ];
+    const rightVendorSlots = [
+      ['司儀'], ['禮生'], ['樂隊'], ['扶棺人員'], ['靈車'], ['供品'],
+      ['素菜'], ['交通車'], ['紙紮'], ['庫錢'], ['投影設備'], []
+    ];
+    const fillVendorSlot = (side, index, vendor) => {
+      const slot = String(index + 1).padStart(2, '0');
+      data[`vendor_${side}_${slot}_name`] = wordValue(vendor.vendor);
+      data[`vendor_${side}_${slot}_note`] = wordValue(vendor.note);
+    };
+    leftVendorSlots.forEach((aliases, index) => fillVendorSlot('left', index, takeVendor(aliases)));
+    rightVendorSlots.forEach((aliases, index) => fillVendorSlot('right', index, aliases.length ? takeVendor(aliases) : {}));
+
+    const extraVendors = vendors.filter((vendor, index) => !usedVendorIndexes.has(index));
+    const fillExtraVendor = (side, index, vendor = {}) => {
+      const slot = String(index + 1).padStart(2, '0');
+      data[`vendor_extra_${side}_${slot}_item`] = wordValue(vendor.item);
+      data[`vendor_extra_${side}_${slot}_name`] = wordValue(vendor.vendor);
+      data[`vendor_extra_${side}_${slot}_note`] = wordValue(vendor.note);
+    };
+    for (let index = 0; index < 5; index += 1) {
+      fillExtraVendor('left', index, extraVendors[index]);
+      fillExtraVendor('right', index, extraVendors[index + 5]);
+    }
+
+    for (let index = 0; index < 9; index += 1) {
+      const slot = String(index + 1).padStart(2, '0');
+      const ritual = rituals[index] || {};
+      data[`ritual_${slot}_item`] = wordValue(ritual.item);
+      data[`ritual_${slot}_vendor`] = wordValue(ritual.vendor);
+      data[`ritual_${slot}_people`] = wordValue(ritual.people);
+      data[`ritual_${slot}_note`] = wordValue(ritual.note);
+    }
+
+    data.birth_summary = `生：${value('birth_date')}`;
+    data.death_summary = `歿：${value('death_date')}`;
+    data.home_summary = `自宅：${value('address')}`;
+    data.hundred_days_summary = `百日：${value('hundred_days')}`;
+    data.anniversary_summary = `對年：${value('anniversary')}`;
+    data.ancestor_tablet_summary = `祖先牌位：${value('ancestor_tablet')}`;
+    data.ancestor_tower_summary = `祖塔：${value('ancestor_tower')}`;
+    data.tower_slot_summary = `塔位：${value('tower_slot')}`;
+
+    return data;
+  };
+
+  const downloadRecordWord = record => {
+    const Docxtemplater = window.docxtemplater || window.Docxtemplater;
+    document.body.dataset.wordExportStatus = 'starting';
+    delete document.body.dataset.wordExportBytes;
+    delete document.body.dataset.wordExportName;
+    if (!window.PizZip || !Docxtemplater || !window.CASE_WORD_TEMPLATE_BASE64) {
+      document.body.dataset.wordExportStatus = 'missing-dependency';
+      window.alert('Word 匯出元件尚未載入完成，請確認網路連線後重新整理頁面。');
+      return;
+    }
+    try {
+      const binary = window.atob(window.CASE_WORD_TEMPLATE_BASE64);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      const zip = new window.PizZip(bytes);
+      const documentTemplate = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+        delimiters: { start: '{{', end: '}}' }
+      });
+      documentTemplate.render(buildWordTemplateData(record));
+      const blob = typeof documentTemplate.toBlob === 'function'
+        ? documentTemplate.toBlob()
+        : documentTemplate.getZip().generate({
+            type: 'blob',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          });
+      const caseName = String(record?.fields?.case_name || '案件').trim() || '案件';
+      const safeName = `${caseName}－協調事項`.replace(/[\\/:*?"<>|]/g, '_');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${safeName}.docx`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      document.body.dataset.wordExportStatus = 'success';
+      document.body.dataset.wordExportBytes = String(blob.size);
+      document.body.dataset.wordExportName = link.download;
+      window.flash?.('Word 檔已下載');
+      window.setTimeout(() => URL.revokeObjectURL(url), 3000);
+    } catch (error) {
+      console.error('Word export failed', error);
+      document.body.dataset.wordExportStatus = 'error';
+      window.alert(`Word 匯出失敗：${error?.message || '範本欄位格式錯誤'}`);
+    }
+  };
+  window.__downloadCaseWord = downloadRecordWord;
+
   const addExportButtons = () => {
     document.querySelectorAll('.case-list-view .case-list-row').forEach(row => {
       const actions = row.querySelector('.case-list-row-actions');
-      if (!actions || actions.querySelector('.export-case')) return;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'btn export-case';
-      button.textContent = '匯出';
-      actions.append(button);
+      if (!actions) return;
+      actions.querySelectorAll('.export-case').forEach(button => button.remove());
+      if (!actions.querySelector('.export-word-case')) {
+        const wordButton = document.createElement('button');
+        wordButton.type = 'button';
+        wordButton.className = 'btn export-word-case';
+        wordButton.textContent = '匯出 Word';
+        actions.append(wordButton);
+      }
     });
   };
 
   document.addEventListener('click', event => {
-    const button = event.target.closest('.case-list-view .export-case');
+    const button = event.target.closest('.case-list-view .export-word-case');
     if (!button) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -3416,7 +3638,7 @@ document.getElementById('saveTop')?.remove();
       window.alert('找不到要匯出的案件資料。');
       return;
     }
-    downloadRecordPdf(record);
+    downloadRecordWord(record);
   }, true);
 
   const listContent = document.querySelector('.case-list-view .case-list-content');
@@ -3456,8 +3678,10 @@ document.getElementById('saveTop')?.remove();
       item.classList.remove('wide', 'full');
       item.classList.add('burial-three-column-field');
     });
-    towerLocation.before(burialType);
-    towerLocation.after(burialLocation);
+    const burialRow = document.createElement('div');
+    burialRow.className = 'burial-three-column-row';
+    burialType.before(burialRow);
+    burialRow.append(burialType, towerLocation, burialLocation);
   }
 
   document.getElementById('completion')?.closest('.card')?.remove();
@@ -3623,19 +3847,19 @@ document.querySelector('[name="ceremony_offerings"]')
         window.flash?.('案件已刪除。');
       });
 
-      const exportButton = document.createElement('button');
-      exportButton.type = 'button';
-      exportButton.className = 'btn export-case';
-      exportButton.textContent = '匯出';
-      exportButton.addEventListener('click', () => {
-        if (typeof window.__downloadCasePdf !== 'function') {
-          window.alert('匯出功能尚未完成載入，請重新整理頁面。');
+      const wordButton = document.createElement('button');
+      wordButton.type = 'button';
+      wordButton.className = 'btn export-word-case';
+      wordButton.textContent = '匯出 Word';
+      wordButton.addEventListener('click', () => {
+        if (typeof window.__downloadCaseWord !== 'function') {
+          window.alert('Word 匯出功能尚未完成載入，請重新整理頁面。');
           return;
         }
-        window.__downloadCasePdf(record);
+        window.__downloadCaseWord(record);
       });
 
-      actions.append(editButton, deleteButton, exportButton);
+      actions.append(editButton, deleteButton, wordButton);
       row.append(actions);
       content.append(row);
     });

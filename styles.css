@@ -119,37 +119,13 @@
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    padding-bottom: 38px;
+    min-height: 48px;
+    height: 48px;
+    padding: 12px 11px;
+    overflow: hidden;
+    resize: none;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-  }
-
-  #venue .touch-resizable-field {
-    position: relative;
-  }
-
-  #venue .touch-resize-handle {
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
-    min-height: 32px;
-    padding: 0;
-    border: 1px solid #9dbbb6;
-    border-radius: 8px;
-    background: #e8f5f1;
-    color: var(--brand-dark);
-    font-size: 20px;
-    font-weight: 800;
-    line-height: 1;
-    cursor: ns-resize;
-    touch-action: none;
-    user-select: none;
   }
 
   #caseForm input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
@@ -631,6 +607,17 @@
   #paperMoneyTable {
     min-width: 48rem;
     table-layout: auto;
+  }
+
+  /* 庫錢數量以直接輸入為主，隱藏原生上下微調箭頭。 */
+  #paperMoneyTable input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  #paperMoneyTable input[type="number"]::-webkit-inner-spin-button,
+  #paperMoneyTable input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
   #paperMoneyTable th:nth-child(1),
   #paperMoneyTable td:nth-child(1) { width: 12rem; min-width: 12rem; }
@@ -1175,15 +1162,15 @@
     font-weight: 800;
   }
 
-.btn.export-case {
+.btn.export-word-case {
     color: #fff;
-    background: #2563eb;
-    border-color: #2563eb;
+    background: #0f766e;
+    border-color: #0f766e;
   }
-  .btn.export-case:hover {
+  .btn.export-word-case:hover {
     color: #fff;
-    background: #1d4ed8;
-    border-color: #1d4ed8;
+    background: #115e59;
+    border-color: #115e59;
   }
 
 .dashboard {
@@ -1203,6 +1190,19 @@
   }
   #basic .burial-three-column-field {
     grid-column: span 4 !important;
+  }
+  #basic .burial-three-column-row {
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    gap: 24px;
+    grid-column: 1 / -1;
+    align-items: end;
+    width: max-content;
+    max-width: 100%;
+  }
+  #basic .burial-three-column-row > .burial-three-column-field {
+    grid-column: auto !important;
+    width: max-content;
   }
 
 #ceremony .ritual-schedule-heading {
@@ -1942,6 +1942,10 @@
       font-size: 25px;
     }
 
+    #caseStatus {
+      font-size: 29px;
+    }
+
     .section,
     .case-list-view,
     .case-archive-view,
@@ -2542,6 +2546,10 @@
   #basic .date-time-branch input { width:88px; min-width:88px; padding-left:8px; padding-right:8px; }
   #basic .date-inline.has-lunar-date .date-time-branch > input:first-child { field-sizing:content; width:fit-content; min-width:7ch; max-width:8ch; }
   #basic .date-inline.has-lunar-date .date-branch-output { flex:0 0 50px; width:50px; min-width:50px; max-width:50px; padding-left:2px; padding-right:2px; text-align:center; color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
+  @media (min-width:601px) {
+    #basic .basic-death-date-field .date-inline.has-lunar-date > input:first-child { width:14ch; min-width:14ch; max-width:14ch; }
+    #basic .basic-death-date-field .date-inline.has-lunar-date .date-time-branch > input:first-child { width:8ch; min-width:8ch; max-width:8ch; }
+  }
   @media (max-width:600px) {
     #basic .date-inline.has-lunar-date { grid-template-columns:max-content minmax(0,150px); }
     #basic .date-inline.has-lunar-date > input:first-child { width:fit-content; }
@@ -2596,6 +2604,10 @@
     box-shadow:none;
   }
   #dateSelectionTable .life-mini-table input[readonly] { background:#f8fafc; color:#155e75; font-weight:700; }
+  #dateSelectionTable .life-mini-table input[name="selection_lunar_birth"] {
+    color:#489e1a !important;
+    -webkit-text-fill-color:#489e1a !important;
+  }
   .date-basic-summary-row { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; padding:14px 0 0; }
   .date-basic-summary-field { display:flex; flex-direction:column; gap:7px; min-width:0; }
   .date-basic-summary-field label { color:#334155; font-size:13px; font-weight:800; }
@@ -2689,6 +2701,10 @@
     width: max-content;
   }
 
+  #basic .burial-three-column-row {
+    column-gap: 24px;
+  }
+
   #basic .block > .form-grid > .field:has([name="tablet_handling"]) {
     grid-column: 1 !important;
     width: max-content;
@@ -2703,5 +2719,19 @@
   #basic [name="spirit_location"] {
     width: 500px;
     max-width: 100%;
+  }
+}
+
+@media (max-width: 850px) {
+  #basic .burial-three-column-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    width: 100%;
+  }
+
+  #basic .burial-three-column-row > .burial-three-column-field {
+    grid-column: 1 !important;
+    width: 100% !important;
+    max-width: none;
   }
 }

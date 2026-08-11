@@ -551,6 +551,12 @@
     }
   };
 
+  let latestRecordSyncTimer = 0;
+  const queueLatestLocalRecordSync = () => {
+    window.clearTimeout(latestRecordSyncTimer);
+    latestRecordSyncTimer = window.setTimeout(syncLatestLocalRecord, 80);
+  };
+
   const roleLabels = {
     owner: '老闆',
     admin: '管理員',
@@ -1258,8 +1264,13 @@
       showStatus('此帳號僅可瀏覽，不能儲存案件。', true);
       return;
     }
-    window.setTimeout(syncLatestLocalRecord, 80);
+    queueLatestLocalRecordSync();
   }, true);
+
+  document.addEventListener('funeral:case-saved', () => {
+    if (!activeCompanyId || activeReadOnly) return;
+    queueLatestLocalRecordSync();
+  });
 
   document.addEventListener('funeral:case-deleted', async event => {
     const caseNo = String(event.detail?.caseNo || '').trim();

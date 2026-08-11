@@ -133,6 +133,17 @@ document.addEventListener('click', event => {
   if (!event.target.closest('[data-tab="ceremony"]')) return;
   requestAnimationFrame(() => refreshScheduleRemarkHeights());
 });
+function refreshServiceHistoryHeight() {
+  refreshAutoGrowingTextarea(document.querySelector('#venue textarea[name="notes"]'));
+}
+document.addEventListener('click', event => {
+  if (!event.target.closest('[data-tab="venue"]')) return;
+  requestAnimationFrame(refreshServiceHistoryHeight);
+});
+window.addEventListener('resize', () => {
+  if (!document.getElementById('venue')?.classList.contains('active')) return;
+  requestAnimationFrame(refreshServiceHistoryHeight);
+});
 function addRow(table, values = {}) {
   const tableBody = document.querySelector(`#${table} tbody`);
   if (!tableBody) return;
@@ -299,6 +310,11 @@ function collect() {
       data.fields[e.name] = e.value;
     }
   });
+  const paperItems = [...(document.querySelectorAll('#paperItemsTable input[name="paper_item"]') || [])]
+    .map(input => String(input.value || '').trim())
+    .filter(Boolean);
+  data.paperItems = paperItems;
+  data.fields.paper_offerings = paperItems.join('\n');
   return data;
 }
 function load(data) {
@@ -310,6 +326,11 @@ function load(data) {
     const control = form.elements[name];
     if (!control) return;
     const value = Array.isArray(storedValue) ? storedValue.join(',') : storedValue;
+    if (name === 'paper_offerings' && control instanceof HTMLInputElement && control.type !== 'hidden') {
+      control.dataset.paperItemsValue = Array.isArray(storedValue)
+        ? storedValue.join('\n')
+        : String(storedValue ?? '');
+    }
     if (control.type === 'date' && value && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
       setTimeout(() => {
         const current = form.elements[name];
@@ -321,6 +342,9 @@ function load(data) {
       control.value = value;
     }
   });
+  window.__loadPaperItems?.(
+    Array.isArray(data.paperItems) ? data.paperItems : data.fields?.paper_offerings
+  );
   (data.contacts || []).forEach(values => addRow('contacts', values));
   (data.schedules || []).forEach(values => addRow('schedules', values));
   (data.vendors || []).forEach(values => addRow('vendorsTable', values));
@@ -363,7 +387,7 @@ form.addEventListener('change',()=>{markCaseDirty();syncLunarDates();updateMetri
 form.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(target?.closest('[data-add],.add,.remove'))markCaseDirty()},true);
 form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())save()});
 $('#saveTop').onclick=()=>{if(form.reportValidity())save()};
-$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
+$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);window.__loadPaperItems?.([]);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
 $('#sample').onclick=()=>{load({fields:{case_name:'王○○府治喪案件',gender:'男',birth_date:'1948-04-12',death_date:'2026-07-20',funeral_date:'2026-07-27',inspection_unit:'桃園市立殯儀館',source:'親友介紹',religion:'佛教',pickup_location:'桃園區住家',altar_location:'桃園市立殯儀館',burial_type:'火化',tower_location:'桃園市○○納骨塔',mourning_dress:'傳統',band:'國樂',band_people:'5',hearse:'中式',body_care:'一般',shroud:'公司'},contacts:[{name:'王大明',relation:'長子',phone:'0912-345-678'}],schedules:[{item:'頭七法事',date:'2026-07-26',time:'09:00',people:'12',note:''}],vendors:vendorItems.map((item,i)=>({item,vendor:i===0?'○○禮儀':'',note:'',notified:i===0,confirmed:false})),rituals:[{item:'頭七法事',vendor:'○○法師',people:'12',note:''}]});markCaseDirty();flash('已載入示範資料')};
 let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else{fillDefaults();clearCaseDirty();setCaseStatus('輸入中')};syncLunarDates();updateMetrics();
 
@@ -747,6 +771,7 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
       formSection.querySelector('.tabs button[data-tab="basic"]')?.click();
       window.__editingCaseNo = '';
       HTMLFormElement.prototype.reset.call(form);
+      window.__loadPaperItems?.([]);
       ['contacts','schedules','vendorsTable','ritualsTable','dateSelectionTable'].forEach(id => {
         const body = document.querySelector(`#${id} tbody`);
         if (body) body.replaceChildren();
@@ -1144,7 +1169,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 
     const title = field.querySelector(':scope > label');
     if (title) title.textContent = '紙紮項目';
-    const existing = original.value;
+    const existing = original.dataset.paperItemsValue ?? original.value;
     const hidden = document.createElement('input');
     hidden.type = 'hidden';
     hidden.name = 'paper_offerings';
@@ -1158,7 +1183,10 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     original.replaceWith(hidden, tableWrap, add);
 
     const tbody = tableWrap.querySelector('tbody');
-    const sync = () => { hidden.value = [...tbody.querySelectorAll('input[name="paper_item"]')].map(input => input.value).filter(Boolean).join('\n'); };
+    const currentItems = () => [...tbody.querySelectorAll('input[name="paper_item"]')]
+      .map(input => String(input.value || '').trim())
+      .filter(Boolean);
+    const sync = () => { hidden.value = currentItems().join('\n'); };
     const addRow = value => {
       const row = document.createElement('tr');
       row.innerHTML = `<td><input name="paper_item" value="${String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>`;
@@ -1166,9 +1194,19 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       row.querySelector('.remove').addEventListener('click', () => { row.remove(); sync(); updateMetrics(); });
       tbody.append(row);
     };
-    (existing ? existing.split('\n') : ['']).forEach(addRow);
+    const loadRows = value => {
+      const values = Array.isArray(value)
+        ? value.map(item => String(item ?? ''))
+        : String(value ?? '').split(/\r?\n/);
+      tbody.innerHTML = '';
+      (values.some(item => item !== '') ? values.filter(item => item !== '') : ['']).forEach(addRow);
+      sync();
+    };
+    window.__loadPaperItems = loadRows;
+    window.__collectPaperItems = currentItems;
+    window.__syncPaperItems = sync;
+    loadRows(existing);
     add.addEventListener('click', () => { addRow(''); updateMetrics(); });
-    sync();
   })();
 
 ;
@@ -1703,9 +1741,10 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
   uploadPane.innerHTML = `
     <div class="upload-card">
       <h2 class="section-title">檔案上傳</h2>
-      <p class="hint">請選擇要附在本案件的圖片、文件或 PDF。</p>
+      <p class="hint">請選擇要附在本案件的圖片、文件或 PDF；單一檔案上限 6 MB，按下「儲存案件」後會上傳到雲端。</p>
       <label class="upload-picker" for="case-attachment-input">選擇檔案</label>
-      <input id="case-attachment-input" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+      <input id="case-attachment-input" type="file" multiple accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,.pdf,.doc,.docx,.xls,.xlsx">
+      <p class="upload-save-status" role="status" aria-live="polite"></p>
       <ul id="case-attachment-list"><li class="empty">尚未選擇檔案</li></ul>
     </div>
   `;
@@ -1724,12 +1763,35 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 
   const input = uploadPane.querySelector('#case-attachment-input');
   const list = uploadPane.querySelector('#case-attachment-list');
+  const uploadStatus = uploadPane.querySelector('.upload-save-status');
+  const bucketName = 'case-attachments';
+  const maxFileSize = 6 * 1024 * 1024;
   let attachments = [];
+  let removedPaths = new Set();
+
+  const setUploadStatus = (message = '', isError = false) => {
+    uploadStatus.textContent = message;
+    uploadStatus.classList.toggle('error', isError);
+  };
+
+  const attachmentName = attachment => attachment.name || attachment.file?.name || '未命名檔案';
+  const attachmentType = attachment => attachment.type || attachment.file?.type || 'application/octet-stream';
+  const storedAttachment = attachment => ({
+    name: attachmentName(attachment),
+    size: Number(attachment.size || attachment.file?.size || 0),
+    type: attachmentType(attachment),
+    path: String(attachment.path || ''),
+    uploadedAt: attachment.uploadedAt || new Date().toISOString()
+  });
+  const safePathPart = value => String(value || '')
+    .normalize('NFKC')
+    .replace(/[^a-zA-Z0-9._-]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'file';
 
   const syncInput = () => {
     try {
       const transfer = new DataTransfer();
-      attachments.forEach(item => transfer.items.add(item.file));
+      attachments.filter(item => item.file).forEach(item => transfer.items.add(item.file));
       input.files = transfer.files;
     } catch {
       input.value = '';
@@ -1752,33 +1814,71 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 
       const name = document.createElement('span');
       name.className = 'attachment-name';
-      name.textContent = attachment.file.name;
+      name.textContent = attachmentName(attachment);
+      name.title = attachmentName(attachment);
+      const meta = document.createElement('small');
+      meta.className = 'attachment-meta';
+      meta.textContent = attachment.file ? '等待儲存上傳' : '已儲存';
+      name.append(meta);
 
       const review = document.createElement('button');
       review.type = 'button';
       review.className = 'attachment-action';
       review.textContent = '檢閱';
-      review.addEventListener('click', () => {
-        if (attachment.file.type.startsWith('image/') || attachment.file.type === 'application/pdf') {
-          window.open(attachment.url, '_blank', 'noopener');
+      review.addEventListener('click', async () => {
+        const type = attachmentType(attachment);
+        const previewable = type.startsWith('image/') || type === 'application/pdf';
+        if (attachment.url) {
+          if (previewable) window.open(attachment.url, '_blank', 'noopener');
+          else {
+            const link = document.createElement('a');
+            link.href = attachment.url;
+            link.download = attachmentName(attachment);
+            link.click();
+          }
           return;
         }
-        const link = document.createElement('a');
-        link.href = attachment.url;
-        link.download = attachment.file.name;
-        link.click();
+        const client = window.funeralCloud?.client;
+        if (!client || !attachment.path) {
+          setUploadStatus('附件尚未連上雲端，請重新登入後再試。', true);
+          return;
+        }
+        const previewWindow = previewable ? window.open('about:blank', '_blank') : null;
+        review.disabled = true;
+        try {
+          const { data, error } = await client.storage
+            .from(bucketName)
+            .createSignedUrl(attachment.path, 120, { download: !previewable });
+          if (error) throw error;
+          if (previewWindow) previewWindow.location.href = data.signedUrl;
+          else {
+            const link = document.createElement('a');
+            link.href = data.signedUrl;
+            link.download = attachmentName(attachment);
+            link.target = '_blank';
+            link.click();
+          }
+        } catch (error) {
+          previewWindow?.close();
+          setUploadStatus(`附件開啟失敗：${error?.message || '未知錯誤'}`, true);
+        } finally {
+          review.disabled = false;
+        }
       });
 
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
       removeButton.className = 'attachment-action attachment-delete';
       removeButton.textContent = '刪除';
-      removeButton.setAttribute('aria-label', `刪除檔案 ${attachment.file.name}`);
+      removeButton.setAttribute('aria-label', `刪除檔案 ${attachmentName(attachment)}`);
       removeButton.addEventListener('click', () => {
-        URL.revokeObjectURL(attachment.url);
+        if (attachment.url) URL.revokeObjectURL(attachment.url);
+        if (attachment.path) removedPaths.add(attachment.path);
         attachments.splice(index, 1);
         syncInput();
         renderAttachments();
+        markCaseDirty();
+        setUploadStatus('附件已移除；按下「儲存案件」後完成更新。');
       });
 
       item.append(name, review, removeButton);
@@ -1787,30 +1887,126 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
   };
 
   const clearAttachments = () => {
-    attachments.forEach(item => URL.revokeObjectURL(item.url));
+    attachments.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
     attachments = [];
+    removedPaths = new Set();
     input.value = '';
+    setUploadStatus('');
     renderAttachments();
   };
 
+  const loadAttachments = savedAttachments => {
+    attachments.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
+    attachments = (Array.isArray(savedAttachments) ? savedAttachments : [])
+      .filter(item => item && item.path && item.name)
+      .map(item => storedAttachment(item));
+    removedPaths = new Set();
+    input.value = '';
+    setUploadStatus('');
+    renderAttachments();
+  };
+
+  const prepareAttachmentsForSave = async caseNo => {
+    const pending = attachments.filter(item => item.file);
+    if (!pending.length) return attachments.map(storedAttachment);
+
+    const client = window.funeralCloud?.client;
+    const companyId = window.funeralCloud?.companyId;
+    if (!client || !companyId) throw new Error('雲端尚未連線，附件尚未儲存。請重新登入後再試。');
+    if (window.funeralCloud?.readOnly) throw new Error('此帳號僅可瀏覽，不能上傳附件。');
+
+    setUploadStatus(`正在上傳 ${pending.length} 個附件…`);
+    uploadPane.classList.add('is-uploading');
+    const uploadedPaths = [];
+    const nextAttachments = [];
+    try {
+      for (const attachment of attachments) {
+        if (!attachment.file) {
+          nextAttachments.push(storedAttachment(attachment));
+          continue;
+        }
+        const path = `${companyId}/${safePathPart(caseNo)}/${crypto.randomUUID()}-${safePathPart(attachment.file.name)}`;
+        const { error } = await client.storage.from(bucketName).upload(path, attachment.file, {
+          contentType: attachment.file.type || 'application/octet-stream',
+          cacheControl: '3600',
+          upsert: false
+        });
+        if (error) throw error;
+        uploadedPaths.push(path);
+        nextAttachments.push({
+          name: attachment.file.name,
+          size: attachment.file.size,
+          type: attachment.file.type || 'application/octet-stream',
+          path,
+          uploadedAt: new Date().toISOString()
+        });
+      }
+      attachments.forEach(item => { if (item.url) URL.revokeObjectURL(item.url); });
+      attachments = nextAttachments;
+      syncInput();
+      renderAttachments();
+      setUploadStatus(`已上傳 ${pending.length} 個附件。`);
+      return attachments.map(storedAttachment);
+    } catch (error) {
+      if (uploadedPaths.length) {
+        await client.storage.from(bucketName).remove(uploadedPaths).catch(() => {});
+      }
+      setUploadStatus(`附件上傳失敗：${error?.message || '未知錯誤'}`, true);
+      throw error;
+    } finally {
+      uploadPane.classList.remove('is-uploading');
+    }
+  };
+
+  const commitRemovedAttachments = async () => {
+    if (!removedPaths.size) return '';
+    const client = window.funeralCloud?.client;
+    if (!client) return '雲端尚未連線，舊附件暫時無法刪除。';
+    const paths = [...removedPaths];
+    const { error } = await client.storage.from(bucketName).remove(paths);
+    if (error) return error.message || '舊附件刪除失敗';
+    removedPaths.clear();
+    return '';
+  };
+
+  window.__clearCaseAttachments = clearAttachments;
+  window.__loadCaseAttachments = loadAttachments;
+  window.__prepareCaseAttachmentsForSave = prepareAttachmentsForSave;
+  window.__commitRemovedCaseAttachments = commitRemovedAttachments;
+
   input.addEventListener('change', () => {
     [...input.files].forEach(file => {
+      if (file.size > maxFileSize) {
+        setUploadStatus(`「${file.name}」超過 6 MB，請縮小檔案後再上傳。`, true);
+        return;
+      }
       const duplicate = attachments.some(item =>
-        item.file.name === file.name &&
-        item.file.size === file.size &&
-        item.file.lastModified === file.lastModified
+        attachmentName(item) === file.name &&
+        Number(item.size || item.file?.size || 0) === file.size
       );
-      if (!duplicate) attachments.push({ file, url: URL.createObjectURL(file) });
+      if (!duplicate) attachments.push({
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type || 'application/octet-stream',
+        url: URL.createObjectURL(file)
+      });
     });
     syncInput();
     renderAttachments();
+    markCaseDirty();
+    if (attachments.some(item => item.file)) setUploadStatus('附件等待儲存上傳。');
   });
 
   document.getElementById('caseForm')?.addEventListener('reset', () => {
     window.setTimeout(clearAttachments, 0);
   });
-  window.__clearCaseAttachments = clearAttachments;
-  renderAttachments();
+  try {
+    const draft = JSON.parse(localStorage.getItem('funeral-case-draft-v1') || 'null');
+    loadAttachments(draft?.attachments);
+  } catch {
+    renderAttachments();
+  }
 })();
 
 ;
@@ -1912,10 +2108,45 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 ;
 
 (() => {
+  const saveSelector = '#saveTop, #caseForm .footer-actions .btn.primary';
+  if (document.documentElement.dataset.saveButtonFeedbackBound) return;
+  document.documentElement.dataset.saveButtonFeedbackBound = 'true';
+
+  const saveButtonFromEvent = event =>
+    event.target instanceof Element ? event.target.closest(saveSelector) : null;
+
+  document.addEventListener('pointerdown', event => {
+    const button = saveButtonFromEvent(event);
+    if (button) button.classList.add('is-pressing');
+  }, true);
+
+  ['pointerup', 'pointercancel'].forEach(type => {
+    document.addEventListener(type, event => {
+      const button = saveButtonFromEvent(event);
+      if (button) button.classList.remove('is-pressing');
+    }, true);
+  });
+
+  document.addEventListener('click', event => {
+    const button = saveButtonFromEvent(event);
+    if (!button) return;
+    if (!button.dataset.defaultLabel) button.dataset.defaultLabel = button.textContent.trim();
+    if (button.__savePressTimer) window.clearTimeout(button.__savePressTimer);
+    button.classList.remove('is-pressing', 'is-saved', 'is-save-error');
+    button.classList.add('is-saving');
+    button.textContent = '儲存中…';
+  }, true);
+})();
+
+;
+
+(() => {
   const caseForm = document.getElementById('caseForm');
   const topSaveButton = document.getElementById('saveTop');
+  const formSaveButton = caseForm?.querySelector('.footer-actions button[type="submit"]');
   const draftKey = 'funeral-case-draft-v1';
   const recordsKey = 'funeral-case-records-v1';
+  let savingCase = false;
   if (!caseForm || !topSaveButton) return;
 
   const readRecords = () => {
@@ -1936,20 +2167,47 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     window.setTimeout(() => status.classList.remove('show'), 2600);
   };
 
-  const saveCase = () => {
+  const showSaveButtonFeedback = (button, state) => {
+    if (!button) return;
+    if (!button.dataset.defaultLabel) button.dataset.defaultLabel = button.textContent.trim();
+    if (button.__saveFeedbackTimer) window.clearTimeout(button.__saveFeedbackTimer);
+    button.classList.remove('is-saving', 'is-saved', 'is-save-error');
+    if (state === 'saving') {
+      button.classList.add('is-saving');
+      button.textContent = '儲存中…';
+      return;
+    }
+    button.classList.add(state === 'saved' ? 'is-saved' : 'is-save-error');
+    button.textContent = state === 'saved' ? '已儲存 ✓' : '請檢查欄位';
+    button.__saveFeedbackTimer = window.setTimeout(() => {
+      button.classList.remove('is-saving', 'is-saved', 'is-save-error');
+      button.textContent = button.dataset.defaultLabel || '儲存案件';
+    }, 3000);
+  };
+
+  const saveCase = async (triggerButton = formSaveButton) => {
+    if (savingCase) return false;
+    showSaveButtonFeedback(triggerButton, 'saving');
     if (typeof window.validateAllCaseDates === 'function' && !window.validateAllCaseDates()) {
       showSaveStatus('日期格式必須是 YYY/MM/DD', true);
+      showSaveButtonFeedback(triggerButton, 'error');
       return false;
     }
     if (!caseForm.reportValidity()) {
       showSaveStatus('請先填寫案件編號與案名', true);
+      showSaveButtonFeedback(triggerButton, 'error');
       return false;
     }
 
+    savingCase = true;
+    if (triggerButton) triggerButton.disabled = true;
     try {
       const data = collect();
       data.fields.case_no = String(data.fields.case_no || '').trim();
       data.fields.case_name = String(data.fields.case_name || '').trim();
+      data.attachments = typeof window.__prepareCaseAttachmentsForSave === 'function'
+        ? await window.__prepareCaseAttachmentsForSave(data.fields.case_no)
+        : [];
       data.saved_at = new Date().toISOString();
 
       localStorage.setItem(draftKey, JSON.stringify(data));
@@ -1963,6 +2221,9 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       else records.push(data);
       localStorage.setItem(recordsKey, JSON.stringify(records));
       document.dispatchEvent(new CustomEvent('funeral:case-saved'));
+      const attachmentDeleteWarning = typeof window.__commitRemovedCaseAttachments === 'function'
+        ? await window.__commitRemovedCaseAttachments()
+        : '';
       if (editingCaseNo) {
         window.__editingCaseNo = data.fields.case_no;
         syncEditCaseTitle();
@@ -1970,12 +2231,19 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 
       markCaseSaved();
       updateMetrics();
-      showSaveStatus(`案件 ${data.fields.case_no} 已儲存`);
+      showSaveStatus(attachmentDeleteWarning
+        ? `案件已儲存；舊附件清理失敗：${attachmentDeleteWarning}`
+        : `案件 ${data.fields.case_no} 已儲存`);
+      showSaveButtonFeedback(triggerButton, 'saved');
       return true;
     } catch (error) {
       console.error('儲存案件失敗', error);
       showSaveStatus(`儲存失敗：${error?.message || '未知錯誤'}`, true);
+      showSaveButtonFeedback(triggerButton, 'error');
       return false;
+    } finally {
+      savingCase = false;
+      if (triggerButton) triggerButton.disabled = false;
     }
   };
 
@@ -1985,13 +2253,19 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
   topSaveButton.addEventListener('click', event => {
     event.preventDefault();
     event.stopImmediatePropagation();
-    saveCase();
+    saveCase(topSaveButton);
+  });
+
+  formSaveButton?.addEventListener('click', event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    saveCase(formSaveButton);
   });
 
   caseForm.addEventListener('submit', event => {
     event.preventDefault();
     event.stopImmediatePropagation();
-    saveCase();
+    saveCase(event.submitter || formSaveButton);
   }, true);
 })();
 
@@ -2019,6 +2293,9 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       const control = caseForm.elements[name];
       if (control) control.value = value ?? '';
     });
+    window.__loadPaperItems?.(
+      Array.isArray(data.paperItems) ? data.paperItems : data.fields?.paper_offerings
+    );
 
     const addSavedRows = (tableId, items) => {
       if (!document.querySelector(`#${tableId} tbody`)) return;
@@ -2028,6 +2305,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     addSavedRows('schedules', data.schedules);
     addSavedRows('vendorsTable', data.vendors);
     addSavedRows('ritualsTable', data.rituals);
+    window.setTimeout(() => window.__loadCaseAttachments?.(data.attachments), 0);
 
     if (document.querySelector('#contacts tbody')?.rows.length === 0) addRow('contacts');
     if (document.querySelector('#schedules tbody')?.rows.length === 0) addRow('schedules');
@@ -2214,6 +2492,9 @@ document.getElementById('saveTop')?.remove();
       const control = form.elements[name];
       if (control) control.value = value ?? '';
     });
+    window.__loadPaperItems?.(
+      Array.isArray(record.paperItems) ? record.paperItems : record.fields?.paper_offerings
+    );
     refreshBasicTimeBranches(form);
 
     const appendRows = (tableId, items) => {
@@ -2224,6 +2505,7 @@ document.getElementById('saveTop')?.remove();
     appendRows('schedules', record.schedules);
     appendRows('vendorsTable', record.vendors);
     appendRows('ritualsTable', record.rituals);
+    window.setTimeout(() => window.__loadCaseAttachments?.(record.attachments), 0);
     // Editing an existing case must preserve deleted vendor rows.
     // Default vendor items are only seeded when a brand-new case is created.
     fillDefaults({ seedVendors: false });
@@ -3438,6 +3720,8 @@ document.getElementById('saveTop')?.remove();
       .filter(item => item?.item || item?.vendor || item?.people || item?.note);
 
     data.case_no_summary = `案件編號：${value('case_no')}`;
+    data.case_header_summary = `${data.case_no_summary}\u3000\u3000\u65b9\u6848\u985e\u578b\uff1a${value('case_type')}`;
+    data.case_name_summary = `\u6848\u540d\uff1a${value('case_name')}`;
     data.address_phone = [
       value('address'),
       value('phone') ? `電話：${value('phone')}` : ''
@@ -3456,6 +3740,10 @@ document.getElementById('saveTop')?.remove();
       data[`contact_${slot}_phone`] = wordValue(contact.phone);
     }
 
+    // 畫面上的骨罐、棺木標籤沿用既有資料欄位的反向命名；
+    // 匯出時使用語意明確的專用欄位，確保 Word 顯示值不會互換。
+    data.urn_style_export = value('coffin_style');
+    data.coffin_style_export = value('urn_style');
     data.nailing_summary = `${wordChoice(fields.nailing, '有')}　${wordChoice(fields.nailing, '無')}`;
     data.maternal_summary = `${wordChoice(fields.maternal, '有')}　${wordChoice(fields.maternal, '無')}`;
     data.farewell_rite_summary = `${wordChoice(fields.farewell_rite, '有')}　${wordChoice(fields.farewell_rite, '無')}`;
@@ -3487,7 +3775,17 @@ document.getElementById('saveTop')?.remove();
       `${fields.memorial_service ? '☑' : '□'}安息禮拜`
     ].join('　');
     data.staff_summary = `男：${value('staff_male')}　長孫：${value('staff_eldest_grandson')}`;
-    data.procession_summary = `陣頭：${value('procession')}`;
+    const dateWithLunar = (solarDate, manualLunar = '') => {
+      const solar = wordValue(solarDate).trim();
+      const lunar = wordValue(manualLunar).trim() || (solar ? lunarText(solar.replaceAll('/', '-')) : '');
+      return solar && lunar ? `${solar}（${lunar}）` : solar || lunar;
+    };
+    data.birth_date_export = dateWithLunar(fields.birth_date_extra || fields.birth_date, fields.birth_lunar_extra);
+    data.death_date_export = dateWithLunar(fields.death_date);
+    data.procession_summary = value('procession');
+    data.service_history_summary = value('notes')
+      ? `服務履歷：\n${value('notes')}`
+      : '服務履歷：';
 
     for (let index = 0; index < 8; index += 1) {
       const slot = String(index + 1).padStart(2, '0');
@@ -3497,9 +3795,9 @@ document.getElementById('saveTop')?.remove();
         wordValue(schedule.date),
         wordValue(schedule.time),
         schedule.people ? `${wordValue(schedule.people)}人` : '',
-        wordValue(schedule.note),
-        wordValue(schedule.remark)
+        wordValue(schedule.note)
       ].filter(Boolean).join('　');
+      data[`schedule_${slot}_remark`] = wordValue(schedule.remark);
     }
 
     const normalizeVendorItem = item => String(item || '').replace(/\s+/g, '');

@@ -316,6 +316,37 @@
     background: #f8fbfa;
   }
 
+  #saveTop,
+  #caseForm .footer-actions .btn.primary {
+    box-shadow: 0 4px 0 #0a4b43, 0 7px 14px rgba(17, 93, 84, .2);
+    transform: translateY(0);
+    transition: transform .08s ease, box-shadow .08s ease, background-color .18s ease;
+  }
+
+  #saveTop:active,
+  #caseForm .footer-actions .btn.primary:active,
+  #saveTop.is-pressing,
+  #caseForm .footer-actions .btn.primary.is-pressing,
+  #saveTop.is-saving,
+  #caseForm .footer-actions .btn.primary.is-saving {
+    box-shadow: 0 1px 0 #0a4b43, 0 2px 5px rgba(17, 93, 84, .18);
+    transform: translateY(3px) scale(.97);
+  }
+
+  #saveTop.is-saved,
+  #caseForm .footer-actions .btn.primary.is-saved {
+    background: #0b8f67 !important;
+    border-color: #087553 !important;
+    box-shadow: 0 3px 0 #075f45, 0 0 0 4px rgba(11, 143, 103, .18);
+  }
+
+  #saveTop.is-save-error,
+  #caseForm .footer-actions .btn.primary.is-save-error {
+    background: #b42318 !important;
+    border-color: #8f1c13 !important;
+    box-shadow: 0 3px 0 #72160f, 0 0 0 4px rgba(180, 35, 24, .16);
+  }
+
 /* 農曆改併入日期欄位標籤，避免多佔一列。 */
   #caseForm .lunar-note { display:none !important; }
   #caseForm .lunar-inline { color:var(--brand-dark); font-weight:700; margin-left:6px; white-space:nowrap; }
@@ -718,11 +749,30 @@
   }
 
   #case-attachment-list .attachment-name {
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  #case-attachment-list .attachment-meta {
+    color: #6b7d8d;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .upload-save-status {
+    min-height: 22px;
+    margin: 0 0 10px;
+    color: var(--brand-dark);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .upload-save-status.error { color: #b42318; }
+  #upload-files-pane.is-uploading .upload-picker { opacity: .55; pointer-events: none; }
 
   #case-attachment-list .attachment-action {
     min-height: 34px;
@@ -2676,6 +2726,45 @@
 
 /* 基本資料桌機版：日期另起一列；治喪與安葬區使用固定 24px 欄距。 */
 @media (min-width: 851px) {
+  #basic > .form-grid {
+    column-gap: 24px;
+  }
+
+  #basic > .form-grid > .field > :is(
+    [name="case_no"],
+    [name="case_name"],
+    [name="case_type"],
+    [name="religion"],
+    [name="funeral_date"],
+    [name="source"]
+  ) {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  #arrangement .form-grid,
+  #arrangement .form-grid.service-layout-grid {
+    column-gap: 24px;
+  }
+
+  #arrangement .form-grid > .field {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+  }
+
+  #arrangement .form-grid > .field > :is(
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea,
+    .choice-row,
+    .table-wrap
+  ) {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
   #basic .form-grid > .basic-birth-date-field {
     grid-column: 1 / span 6 !important;
   }

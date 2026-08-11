@@ -111,6 +111,34 @@ try {
     Set-ParagraphText -Paragraph $paragraph -Text $Text
   }
 
+  function Remove-UnderlinedBlankRuns {
+    param(
+      [System.Xml.XmlNode]$Paragraph
+    )
+
+    foreach ($run in @($Paragraph.SelectNodes('./w:r', $namespaceManager))) {
+      $underline = $run.SelectSingleNode('./w:rPr/w:u[not(@w:val="none")]', $namespaceManager)
+      if ($null -eq $underline) {
+        continue
+      }
+
+      $runText = (($run.SelectNodes('.//w:t', $namespaceManager) | ForEach-Object { $_.InnerText }) -join '')
+      if ([string]::IsNullOrWhiteSpace($runText)) {
+        [void]$Paragraph.RemoveChild($run)
+      }
+    }
+  }
+
+  function Remove-ParagraphUnderline {
+    param(
+      [System.Xml.XmlNode]$Paragraph
+    )
+
+    foreach ($underline in @($Paragraph.SelectNodes('./w:pPr/w:rPr/w:u | ./w:r/w:rPr/w:u', $namespaceManager))) {
+      [void]$underline.ParentNode.RemoveChild($underline)
+    }
+  }
+
   $bodyParagraphs = @($documentXml.SelectNodes('/w:document/w:body/w:p', $namespaceManager))
   $serviceHistoryLabel = -join @(
     [char]0x670D,
@@ -217,6 +245,17 @@ try {
   }
   foreach ($cellSpec in $mainCells) {
     Set-CellText $mainTable $cellSpec[0] $cellSpec[1] $cellSpec[2]
+  }
+
+  foreach ($paragraph in @($mainTable.SelectNodes('.//w:p', $namespaceManager))) {
+    $paragraphText = (($paragraph.SelectNodes('.//w:t', $namespaceManager) | ForEach-Object { $_.InnerText }) -join '')
+    if ($paragraphText -match '^\{\{schedule_\d{2}_detail\}\}$') {
+      Remove-UnderlinedBlankRuns -Paragraph $paragraph
+    }
+    if ($paragraphText -eq '{{staff_summary}}') {
+      Remove-ParagraphUnderline -Paragraph $paragraph
+      Remove-UnderlinedBlankRuns -Paragraph $paragraph
+    }
   }
 
   $vendorTable = $tables[1]

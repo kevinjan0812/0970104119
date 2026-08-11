@@ -155,14 +155,32 @@ function addRow(table, values = {}) {
     document.getElementById('schedules')?.tHead?.remove();
     const scheduleHeader = document.createElement('tr');
     scheduleHeader.className = 'schedule-entry-header';
-    scheduleHeader.innerHTML = '<th>項目</th><th>日期</th><th>時間</th><th>人數</th><th>地點</th><th></th>';
+    scheduleHeader.innerHTML = '<th>項目</th><th>日期</th><th>時間</th><th>人數</th><th>地點</th><th class="schedule-header-action-cell"></th>';
+    scheduleHeader.lastElementChild.innerHTML = remove();
+    const scheduleDeleteButton = scheduleHeader.querySelector('.remove');
+    scheduleDeleteButton.textContent = '';
+    scheduleDeleteButton.classList.add('schedule-header-remove');
+    scheduleDeleteButton.setAttribute('aria-label', '刪除此筆功德法事');
+    scheduleDeleteButton.title = '刪除此筆功德法事';
     const scheduleNoteValue = values.note ?? getScheduleLocationShortcutValue();
     tr.className = 'schedule-main-row';
+    tr.dataset.googleCalendarEventId = values.googleCalendarEventId || values.google_calendar_event_id || '';
+    tr.dataset.googleCalendarSyncId = values.googleCalendarSyncId || values.google_calendar_sync_id || crypto.randomUUID();
+    tr.dataset.googleCalendarSyncedSignature = values.googleCalendarSyncedSignature || values.google_calendar_synced_signature || '';
     const scheduleTimeMatch = String(values.time || '').trim().match(/^([01]?\d|2[0-3]):?([0-5]\d)$/);
     const scheduleTimeValue = scheduleTimeMatch
       ? `${scheduleTimeMatch[1].padStart(2, '0')}:${scheduleTimeMatch[2]}`
       : '';
-    tr.innerHTML = `<td class="schedule-item-cell">${input('schedule_item','text',values.item||'')}<div class="schedule-row-notes"><label>備註</label><textarea name="schedule_remark" rows="1"></textarea></div></td><td>${input('schedule_date','text',values.date||'')}</td><td><input name="schedule_time" value="${scheduleTimeValue}" aria-label="功德法事時間"></td><td><input name="schedule_people" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="功德法事人數" value="${values.people||''}"></td><td>${input('schedule_note','text',scheduleNoteValue)}</td><td>${remove()}</td>`;
+    tr.innerHTML = `<td class="schedule-item-cell">${input('schedule_item','text',values.item||'')}<div class="schedule-row-notes"><label>備註</label><textarea name="schedule_remark" rows="1"></textarea></div></td><td>${input('schedule_date','text',values.date||'')}</td><td><input name="schedule_time" value="${scheduleTimeValue}" aria-label="功德法事時間"></td><td><input name="schedule_people" type="number" min="0" step="1" inputmode="numeric" placeholder="0" aria-label="功德法事人數" value="${values.people||''}"></td><td>${input('schedule_note','text',scheduleNoteValue)}</td><td></td>`;
+    const scheduleActionCell = tr.lastElementChild;
+    scheduleActionCell?.classList.add('schedule-action-cell');
+    const googleCalendarButton = document.createElement('button');
+    googleCalendarButton.type = 'button';
+    googleCalendarButton.className = 'schedule-google-calendar';
+    googleCalendarButton.textContent = tr.dataset.googleCalendarEventId
+      ? '已加入'
+      : '加入GOOGLE日曆';
+    scheduleActionCell?.prepend(googleCalendarButton);
     const scheduleRemark = tr.querySelector('[name="schedule_remark"]');
     scheduleRemark.value = values.remark || '';
     configureAutoGrowingTextarea(scheduleRemark);
@@ -209,7 +227,11 @@ function addRow(table, values = {}) {
   if (table === 'schedules') tableBody.append(tr._scheduleRemarkRow);
   syncLunarDates(tr);
   window.refreshContentSizedFields?.(tr);
-  tr.querySelector('.remove').onclick = () => {
+  if (table === 'schedules') window.prepareScheduleCalendarRow?.(tr);
+  const removeButton = table === 'schedules'
+    ? tr._scheduleHeaderRow?.querySelector('.remove')
+    : tr.querySelector('.remove');
+  removeButton.onclick = () => {
     tr._scheduleHeaderRow?.remove();
     tr.remove();
     tr._scheduleRemarkRow?.remove();
@@ -247,7 +269,10 @@ function rows(table,fields){
     time:r.querySelector('[name="schedule_time"]')?.value||'',
     people:r.querySelector('[name="schedule_people"]')?.value||'',
     note:r.querySelector('[name="schedule_note"]')?.value||'',
-    remark:scheduleRemarkControl(r)?.value||''
+    remark:scheduleRemarkControl(r)?.value||'',
+    googleCalendarEventId:r.dataset.googleCalendarEventId||'',
+    googleCalendarSyncId:r.dataset.googleCalendarSyncId||'',
+    googleCalendarSyncedSignature:r.dataset.googleCalendarSyncedSignature||''
   }));
   return [...body.rows].map(r=>Object.fromEntries(fields.map((f,i)=>{
     const control=r.cells[i]?.querySelector('input,select,textarea');
@@ -3774,7 +3799,9 @@ document.getElementById('saveTop')?.remove();
       `${fields.flower_blessing ? '☑' : '□'}獻花祝福`,
       `${fields.memorial_service ? '☑' : '□'}安息禮拜`
     ].join('　');
-    data.staff_summary = `男：${value('staff_male')}　長孫：${value('staff_eldest_grandson')}`;
+    const filialSonValue = value('filial_son_value') || value('staff_male');
+    const eldestGrandsonValue = value('eldest_grandson_value') || value('staff_eldest_grandson');
+    data.staff_summary = `男：${filialSonValue}\n長孫：${eldestGrandsonValue}`;
     const dateWithLunar = (solarDate, manualLunar = '') => {
       const solar = wordValue(solarDate).trim();
       const lunar = wordValue(manualLunar).trim() || (solar ? lunarText(solar.replaceAll('/', '-')) : '');
@@ -3862,6 +3889,11 @@ document.getElementById('saveTop')?.remove();
   };
 
   const downloadRecordWord = record => {
+    if (window.funeralCloud?.readOnly) {
+      document.body.dataset.wordExportStatus = 'forbidden';
+      window.alert('此帳號僅可瀏覽，不能匯出 Word。');
+      return;
+    }
     const Docxtemplater = window.docxtemplater || window.Docxtemplater;
     document.body.dataset.wordExportStatus = 'starting';
     delete document.body.dataset.wordExportBytes;
@@ -4609,6 +4641,10 @@ document.querySelector('[name="ceremony_offerings"]')
       if (output) output.textContent = select.value || '';
     });
     const exportDateSelection = async () => {
+      if (window.funeralCloud?.readOnly) {
+        window.alert('此帳號僅可瀏覽，不能匯出資料。');
+        return;
+      }
       syncDateCaseSummary();
       const sourceTable = pane.querySelector('#dateSelectionTable');
       if (!sourceTable) {
@@ -5326,4 +5362,230 @@ document.querySelector('[name="ceremony_offerings"]')
   });
   window.refreshBasicLunarDates = refreshAllLabels;
   refreshAllLabels();
+})();
+
+;
+
+(() => {
+  const scheduleBody = document.querySelector('#schedules tbody');
+  const caseForm = document.getElementById('caseForm');
+  if (!scheduleBody || !caseForm) return;
+
+  let pendingCalendarSync = null;
+
+  const removeGoogleAuthorizationLink = button => {
+    button.parentElement?.querySelector('.schedule-google-calendar-link')?.remove();
+  };
+
+  const showGoogleAuthorizationLink = (row, button, authorizationUrl) => {
+    removeGoogleAuthorizationLink(button);
+    const link = document.createElement('a');
+    link.className = 'schedule-google-calendar-link';
+    link.href = authorizationUrl;
+    link.target = 'funeral-google-calendar-oauth';
+    link.textContent = '開啟 Google 授權';
+    link.addEventListener('click', () => {
+      pendingCalendarSync = { row, button };
+      button.textContent = '等待 Google 授權…';
+    });
+    button.after(link);
+    button.disabled = true;
+    button.textContent = '等待 Google 授權…';
+  };
+
+  const fieldValue = (row, name) => String(row.querySelector(`[name="${name}"]`)?.value || '').trim();
+  const selectedOfferingLabels = () => [
+    ['offering_meat', '葷'],
+    ['offering_veg', '素'],
+    ['offering_own', '自備']
+  ].filter(([name]) => caseForm.elements[name]?.checked).map(([, label]) => label);
+
+  const calendarSignature = row => JSON.stringify({
+    case_name: String(caseForm.elements.case_name?.value || '').trim(),
+    case_no: String(caseForm.elements.case_no?.value || '').trim(),
+    item: fieldValue(row, 'schedule_item'),
+    date: fieldValue(row, 'schedule_date'),
+    time: fieldValue(row, 'schedule_time'),
+    people: fieldValue(row, 'schedule_people'),
+    location: fieldValue(row, 'schedule_note'),
+    remark: String(scheduleRemarkControl(row)?.value || '').trim(),
+    offerings: selectedOfferingLabels()
+  });
+
+  const calendarButtonLabel = row => {
+    if (!row.dataset.googleCalendarEventId) return '加入GOOGLE日曆';
+    const syncedSignature = row.dataset.googleCalendarSyncedSignature || '';
+    if (syncedSignature && syncedSignature !== calendarSignature(row)) return '更新GOOGLE日曆';
+    return '已加入';
+  };
+
+  const refreshCalendarButton = row => {
+    const button = row?.querySelector('.schedule-google-calendar');
+    if (!button || button.disabled) return;
+    const label = calendarButtonLabel(row);
+    button.textContent = label;
+    button.classList.toggle('is-calendar-success', label === '已加入');
+    button.classList.toggle('is-calendar-update', label === '更新GOOGLE日曆');
+  };
+
+  const prepareScheduleCalendarRow = row => {
+    if (row.dataset.googleCalendarEventId && !row.dataset.googleCalendarSyncedSignature) {
+      row.dataset.googleCalendarSyncedSignature = calendarSignature(row);
+    }
+    refreshCalendarButton(row);
+  };
+
+  window.prepareScheduleCalendarRow = prepareScheduleCalendarRow;
+  scheduleBody.querySelectorAll('tr.schedule-main-row').forEach(prepareScheduleCalendarRow);
+
+  const refreshCalendarStateFromInput = event => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+    const row = target.closest('tr.schedule-main-row');
+    if (row) {
+      refreshCalendarButton(row);
+      return;
+    }
+    if (!['case_name', 'case_no', 'offering_meat', 'offering_veg', 'offering_own'].includes(target.getAttribute('name') || '')) return;
+    scheduleBody.querySelectorAll('tr.schedule-main-row').forEach(refreshCalendarButton);
+  };
+  caseForm.addEventListener('input', refreshCalendarStateFromInput);
+  caseForm.addEventListener('change', refreshCalendarStateFromInput);
+
+  const validateScheduleForCalendar = row => {
+    const required = [
+      [caseForm.elements.case_name, '請先填寫案名。'],
+      [caseForm.elements.case_no, '請先填寫案件編號，才能保存 Google 事件編號。'],
+      [row.querySelector('[name="schedule_item"]'), '請先填寫法事項目。'],
+      [row.querySelector('[name="schedule_date"]'), '請先填寫法事日期。'],
+      [row.querySelector('[name="schedule_time"]'), '請先填寫法事時間。']
+    ];
+    for (const [control, message] of required) {
+      if (String(control?.value || '').trim()) continue;
+      window.alert(message);
+      control?.focus();
+      return false;
+    }
+    return true;
+  };
+
+  const calendarPayload = row => ({
+    action: 'upsert_event',
+    case_name: String(caseForm.elements.case_name?.value || '').trim(),
+    case_no: String(caseForm.elements.case_no?.value || '').trim(),
+    item: fieldValue(row, 'schedule_item'),
+    date: fieldValue(row, 'schedule_date'),
+    time: fieldValue(row, 'schedule_time'),
+    people: fieldValue(row, 'schedule_people'),
+    location: fieldValue(row, 'schedule_note'),
+    remark: String(scheduleRemarkControl(row)?.value || '').trim(),
+    offerings: selectedOfferingLabels(),
+    event_id: row.dataset.googleCalendarEventId || '',
+    schedule_key: row.dataset.googleCalendarSyncId || ''
+  });
+
+  const beginGoogleAuthorization = async (row, button, popup) => {
+    pendingCalendarSync = { row, button };
+    let result;
+    try {
+      result = await window.funeralCloud.googleCalendar({
+        action: 'authorize',
+        return_url: window.location.href
+      });
+    } catch (error) {
+      pendingCalendarSync = null;
+      throw error;
+    }
+    if (!result?.authorization_url) throw new Error('伺服器未回傳 Google 授權網址。');
+    button.dataset.googleAuthorizationUrl = result.authorization_url;
+    popup?.close();
+    showGoogleAuthorizationLink(row, button, result.authorization_url);
+  };
+
+  const syncScheduleToCalendar = async (row, button, popup = null) => {
+    if (!validateScheduleForCalendar(row)) {
+      popup?.close();
+      return;
+    }
+    if (!window.funeralCloud?.googleCalendar) {
+      popup?.close();
+      window.alert('Google 行事曆尚未連上雲端服務，請先登入後再試。');
+      return;
+    }
+
+    const updating = Boolean(row.dataset.googleCalendarEventId);
+    const defaultLabel = calendarButtonLabel(row);
+    button.disabled = true;
+    button.classList.remove('is-calendar-success', 'is-calendar-update', 'is-calendar-error');
+    button.textContent = updating ? '更新中…' : '新增中…';
+    try {
+      const result = await window.funeralCloud.googleCalendar(calendarPayload(row));
+      popup?.close();
+      removeGoogleAuthorizationLink(button);
+      delete button.dataset.googleAuthorizationUrl;
+      if (!result?.event_id) throw new Error('Google 未回傳事件編號，請稍後再試。');
+      row.dataset.googleCalendarEventId = result.event_id;
+      row.dataset.googleCalendarSyncedSignature = calendarSignature(row);
+      button.dataset.calendarUrl = result.html_link || '';
+      button.textContent = '已加入';
+      button.classList.add('is-calendar-success');
+      markCaseDirty();
+      const saved = await window.save?.();
+      if (saved === false) {
+        window.alert('Google 事件已同步，但案件未能儲存。請修正畫面提示後按「儲存案件」，以保留事件編號。');
+        return;
+      }
+      window.flash?.(updating ? '已更新 Google 行事曆。' : '已加入 Google 行事曆。');
+    } catch (error) {
+      if (error?.code === 'google_not_connected') {
+        try {
+          await beginGoogleAuthorization(row, button, popup);
+          return;
+        } catch (authorizationError) {
+          pendingCalendarSync = null;
+          error = authorizationError;
+        }
+      }
+      popup?.close();
+      removeGoogleAuthorizationLink(button);
+      delete button.dataset.googleAuthorizationUrl;
+      button.classList.add('is-calendar-error');
+      button.textContent = defaultLabel;
+      window.alert(`Google 行事曆同步失敗：${error?.message || '未知錯誤'}`);
+    } finally {
+      if (!pendingCalendarSync || pendingCalendarSync.button !== button) {
+        button.disabled = false;
+      }
+    }
+  };
+
+  scheduleBody.addEventListener('click', event => {
+    const button = event.target.closest('.schedule-google-calendar');
+    if (!button || button.disabled) return;
+    const row = button.closest('tr.schedule-main-row');
+    if (!row) return;
+    syncScheduleToCalendar(row, button);
+  });
+
+  window.addEventListener('message', event => {
+    const supabaseOrigin = (() => {
+      try { return new URL(window.SUPABASE_CONFIG?.url || '').origin; }
+      catch { return ''; }
+    })();
+    if (!supabaseOrigin || event.origin !== supabaseOrigin) return;
+    if (event.data?.type !== 'funeral-google-calendar-oauth') return;
+
+    const pending = pendingCalendarSync;
+    pendingCalendarSync = null;
+    if (!pending) return;
+    removeGoogleAuthorizationLink(pending.button);
+    delete pending.button.dataset.googleAuthorizationUrl;
+    pending.button.disabled = false;
+    if (!event.data.ok) {
+      refreshCalendarButton(pending.row);
+      window.alert(event.data.message || 'Google 行事曆授權失敗。');
+      return;
+    }
+    syncScheduleToCalendar(pending.row, pending.button);
+  });
 })();

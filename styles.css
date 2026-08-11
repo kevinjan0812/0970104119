@@ -1305,6 +1305,44 @@
     color: #2f5551;
     padding: 10px 12px;
   }
+  #schedules .schedule-entry-header .schedule-header-action-cell {
+    text-align: right;
+  }
+  #schedules .schedule-entry-header .schedule-header-action-cell .remove {
+    box-sizing: border-box;
+    position: relative;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
+    padding: 0 !important;
+    margin-left: auto;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 0;
+  }
+  #schedules .schedule-entry-header .schedule-header-action-cell .remove:hover {
+    background: #fdeaea;
+  }
+  #schedules .schedule-entry-header .schedule-header-action-cell .remove::before,
+  #schedules .schedule-entry-header .schedule-header-action-cell .remove::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 4px;
+    border-radius: 999px;
+    background: #e53935;
+    box-shadow: 0 1px 0 rgba(132, 24, 24, .18);
+  }
+  #schedules .schedule-entry-header .schedule-header-action-cell .remove::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+  #schedules .schedule-entry-header .schedule-header-action-cell .remove::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
   #schedules .schedule-remark-row > td {
     padding: 0 12px 12px;
     text-align: left;
@@ -1347,7 +1385,59 @@
   #schedules th:nth-child(5),
   #schedules td:nth-child(5) { width: auto; min-width: 240px; max-width: 520px; }
   #schedules th:nth-child(6),
-  #schedules td:nth-child(6) { width: 76px; min-width: 68px; max-width: 88px; }
+  #schedules td:nth-child(6) { width: 164px; min-width: 154px; max-width: 180px; }
+  #schedules .schedule-action-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+  }
+  #schedules .schedule-google-calendar,
+  #schedules .schedule-google-calendar-link {
+    min-height: 38px;
+    padding: 7px 9px;
+    border: 1px solid #1a73e8;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.25;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+  }
+  #schedules .schedule-google-calendar {
+    border-color: #1769c2;
+    background: #1769c2;
+    color: #fff;
+  }
+  #schedules .schedule-google-calendar-link {
+    background: #fff;
+    color: #1769c2;
+  }
+  #schedules .schedule-google-calendar:hover { background: #125aa8; }
+  #schedules .schedule-google-calendar-link:hover { background: #eef5ff; }
+  #schedules .schedule-google-calendar:active,
+  #schedules .schedule-google-calendar-link:active { transform: translateY(2px); }
+  #schedules .schedule-google-calendar:disabled {
+    cursor: wait;
+    opacity: .65;
+  }
+  #schedules .schedule-google-calendar.is-calendar-success {
+    border-color: #c62828;
+    background: #c62828;
+    color: #fff;
+  }
+  #schedules .schedule-google-calendar.is-calendar-update {
+    border-color: #16836f;
+    background: #16836f;
+    color: #fff;
+  }
+  #schedules .schedule-google-calendar.is-calendar-error {
+    border-color: #b33a3a;
+    background: #b33a3a;
+    color: #fff;
+  }
   #schedules tbody input {
     box-sizing: border-box;
     height: 48px !important;

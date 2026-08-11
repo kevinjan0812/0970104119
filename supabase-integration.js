@@ -883,7 +883,7 @@
           <label class="cloud-read-only-option">
             <input name="read_only" type="checkbox">
             <span>僅可瀏覽</span>
-            <small>不可新增、修改、刪除或自動下單</small>
+            <small>不可新增、修改、刪除、自動下單或匯出</small>
           </label>
           <button class="btn primary" type="submit">建立邀請碼</button>
         </form>
@@ -1133,6 +1133,9 @@
     '#caseForm .vendor-line-order',
     '#lineAutoOrder',
     '#lineOrderGroup',
+    '.export-word-case',
+    '.export-case',
+    '.date-selection-export',
     '#addDateSelection',
     '#date-selection-sheet input:not([readonly])',
     '#date-selection-sheet select',
@@ -1164,7 +1167,7 @@
     if (!document.querySelector('.cloud-read-only-banner')) {
       const banner = document.createElement('div');
       banner.className = 'cloud-read-only-banner';
-      banner.textContent = '目前帳號僅可瀏覽；不能新增、修改、刪除案件或自動下單。';
+      banner.textContent = '目前帳號僅可瀏覽；不能新增、修改、刪除案件、自動下單或匯出資料。';
       const main = document.querySelector('.main');
       const top = main?.querySelector('.top');
       if (main) main.insertBefore(banner, top || main.firstChild);
@@ -1194,7 +1197,10 @@
       if (mutationControl) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        showStatus('此帳號僅可瀏覽，不能修改資料。', true);
+        const isExportControl = mutationControl.matches('.export-word-case, .export-case, .date-selection-export');
+        showStatus(isExportControl
+          ? '此帳號僅可瀏覽，不能匯出資料。'
+          : '此帳號僅可瀏覽，不能修改資料。', true);
         return;
       }
     }
@@ -1326,10 +1332,32 @@
     }
     initializeSession(data.session);
   });
+  const invokeGoogleCalendar = async payload => {
+    const { data, error } = await cloud.functions.invoke('google-calendar', { body: payload });
+    if (error) {
+      let detail = null;
+      try {
+        detail = await error.context?.json();
+      } catch {
+        // Keep the SDK error when the server did not return JSON.
+      }
+      const calendarError = new Error(detail?.error || error.message || 'Google 行事曆操作失敗');
+      calendarError.code = detail?.code || 'edge_function_error';
+      throw calendarError;
+    }
+    if (data?.error) {
+      const calendarError = new Error(data.error);
+      calendarError.code = data.code || 'calendar_error';
+      throw calendarError;
+    }
+    return data;
+  };
+
   window.funeralCloud = {
     client: cloud,
     sync: loadAndMergeCloud,
     deleteCase: deleteCloudCase,
+    googleCalendar: payload => invokeGoogleCalendar({ ...payload, company_id: activeCompanyId }),
     sendLineOrder: async payload => {
       const { data, error } = await cloud.functions.invoke('line-order', { body: payload });
       if (error) {

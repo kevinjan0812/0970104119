@@ -6,11 +6,12 @@ import {
   corsHeaders,
   decryptRefreshToken,
   deterministicGoogleEventId,
+  encryptGoogleCredential,
   errorResponse,
   exchangeRefreshToken,
   googleRedirectUri,
   jsonResponse,
-  requiredEnv,
+  loadCompanyGoogleOAuthClient,
   signOAuthState,
   validateReturnUrl,
 } from "../_shared/google-calendar.ts";
@@ -146,10 +147,62 @@ Deno.serve(async (request) => {
   try {
     const input = await request.json().catch(() => ({}));
     const action = clean(input.action);
+    const ownerActions = new Set(["save_config", "authorize"]);
     const member = await authenticateCompanyMember(request, {
-      requireWrite: action !== "status",
+      requireWrite: !["status", "config_status"].includes(action),
+      requireOwner: ownerActions.has(action),
       companyId: clean(input.company_id),
     });
+
+    if (action === "config_status") {
+      const [{ data: config, error: configError }, { data: connection, error: connectionError }] = await Promise.all([
+        member.admin
+          .from("google_calendar_oauth_configs")
+          .select("company_id, updated_at")
+          .eq("company_id", member.companyId)
+          .maybeSingle(),
+        member.admin
+          .from("google_calendar_connections")
+          .select("company_id")
+          .eq("company_id", member.companyId)
+          .maybeSingle(),
+      ]);
+      if (configError || connectionError) throw configError || connectionError;
+      return jsonResponse({
+        configured: Boolean(config),
+        legacy: !config && Boolean(connection),
+        connected: Boolean(connection),
+        updated_at: config?.updated_at || null,
+        redirect_uri: googleRedirectUri(),
+      });
+    }
+
+    if (action === "save_config") {
+      const clientId = clean(input.client_id);
+      const clientSecret = clean(input.client_secret);
+      if (!clientId) throw new HttpError(400, "請輸入 Google OAuth Client ID。", "client_id_required");
+      if (!clientSecret) throw new HttpError(400, "請輸入 Google OAuth Client Secret。", "client_secret_required");
+      if (!clientId.endsWith(".apps.googleusercontent.com")) {
+        throw new HttpError(400, "Google Client ID 格式不正確。", "invalid_client_id");
+      }
+      const { error: saveConfigError } = await member.admin
+        .from("google_calendar_oauth_configs")
+        .upsert({
+          company_id: member.companyId,
+          client_id: clientId,
+          client_secret_ciphertext: await encryptGoogleCredential(clientSecret),
+          configured_by: member.userId,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "company_id" });
+      if (saveConfigError) throw saveConfigError;
+
+      const { error: clearConnectionError } = await member.admin
+        .from("google_calendar_connections")
+        .delete()
+        .eq("company_id", member.companyId);
+      if (clearConnectionError) throw clearConnectionError;
+      return jsonResponse({ configured: true, connected: false, redirect_uri: googleRedirectUri() });
+    }
 
     if (action === "status") {
       const { data, error } = await member.admin
@@ -163,6 +216,17 @@ Deno.serve(async (request) => {
 
     if (action === "authorize") {
       const returnUrl = validateReturnUrl(input.return_url);
+      const { data: existingConnection, error: existingConnectionError } = await member.admin
+        .from("google_calendar_connections")
+        .select("company_id")
+        .eq("company_id", member.companyId)
+        .maybeSingle();
+      if (existingConnectionError) throw existingConnectionError;
+      const oauthClient = await loadCompanyGoogleOAuthClient(
+        member.admin,
+        member.companyId,
+        Boolean(existingConnection),
+      );
       const state = await signOAuthState({
         userId: member.userId,
         companyId: member.companyId,
@@ -172,7 +236,7 @@ Deno.serve(async (request) => {
       });
       const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authorizationUrl.search = new URLSearchParams({
-        client_id: requiredEnv("GOOGLE_CLIENT_ID"),
+        client_id: oauthClient.clientId,
         redirect_uri: googleRedirectUri(),
         response_type: "code",
         scope: GOOGLE_CALENDAR_SCOPE,
@@ -208,8 +272,10 @@ Deno.serve(async (request) => {
     );
     const event = buildEvent(input, deterministicId);
     const existingEventId = clean(input.event_id);
+    const oauthClient = await loadCompanyGoogleOAuthClient(member.admin, member.companyId, true);
     const accessToken = await exchangeRefreshToken(
       await decryptRefreshToken(connection.refresh_token_ciphertext),
+      oauthClient,
     );
 
     let method: "POST" | "PUT" = existingEventId ? "PUT" : "POST";

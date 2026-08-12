@@ -340,6 +340,13 @@ function collect() {
     .filter(Boolean);
   data.paperItems = paperItems;
   data.fields.paper_offerings = paperItems.join('\n');
+  const paperMoney = typeof window.__collectPaperMoney === 'function'
+    ? window.__collectPaperMoney()
+    : [];
+  data.paperMoney = paperMoney;
+  data.fields.paper_money = paperMoney
+    .map(item => [item.date, item.quantity, item.location].join('|'))
+    .join('\n');
   return data;
 }
 function load(data) {
@@ -369,6 +376,9 @@ function load(data) {
   });
   window.__loadPaperItems?.(
     Array.isArray(data.paperItems) ? data.paperItems : data.fields?.paper_offerings
+  );
+  window.__loadPaperMoney?.(
+    Array.isArray(data.paperMoney) ? data.paperMoney : data.fields?.paper_money
   );
   (data.contacts || []).forEach(values => addRow('contacts', values));
   (data.schedules || []).forEach(values => addRow('schedules', values));
@@ -412,7 +422,7 @@ form.addEventListener('change',()=>{markCaseDirty();syncLunarDates();updateMetri
 form.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(target?.closest('[data-add],.add,.remove'))markCaseDirty()},true);
 form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())save()});
 $('#saveTop').onclick=()=>{if(form.reportValidity())save()};
-$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);window.__loadPaperItems?.([]);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
+$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);window.__loadPaperItems?.([]);window.__loadPaperMoney?.([]);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
 $('#sample').onclick=()=>{load({fields:{case_name:'王○○府治喪案件',gender:'男',birth_date:'1948-04-12',death_date:'2026-07-20',funeral_date:'2026-07-27',inspection_unit:'桃園市立殯儀館',source:'親友介紹',religion:'佛教',pickup_location:'桃園區住家',altar_location:'桃園市立殯儀館',burial_type:'火化',tower_location:'桃園市○○納骨塔',mourning_dress:'傳統',band:'國樂',band_people:'5',hearse:'中式',body_care:'一般',shroud:'公司'},contacts:[{name:'王大明',relation:'長子',phone:'0912-345-678'}],schedules:[{item:'頭七法事',date:'2026-07-26',time:'09:00',people:'12',note:''}],vendors:vendorItems.map((item,i)=>({item,vendor:i===0?'○○禮儀':'',note:'',notified:i===0,confirmed:false})),rituals:[{item:'頭七法事',vendor:'○○法師',people:'12',note:''}]});markCaseDirty();flash('已載入示範資料')};
 let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else{fillDefaults();clearCaseDirty();setCaseStatus('輸入中')};syncLunarDates();updateMetrics();
 
@@ -797,6 +807,7 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
       window.__editingCaseNo = '';
       HTMLFormElement.prototype.reset.call(form);
       window.__loadPaperItems?.([]);
+      window.__loadPaperMoney?.([]);
       ['contacts','schedules','vendorsTable','ritualsTable','dateSelectionTable'].forEach(id => {
         const body = document.querySelector(`#${id} tbody`);
         if (body) body.replaceChildren();
@@ -1363,17 +1374,20 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     if (!field || !hidden || !tbody) return;
 
     table.querySelector('thead').innerHTML = '<tr><th>日期</th><th>數量</th><th>地點</th><th></th></tr>';
-    const sync = () => {
-      hidden.value = [...tbody.rows].map(row => {
+    const collectRows = () => [...tbody.rows].map(row => {
         const date = row.querySelector('[name="paper_money_date"]')?.value || '';
         const quantity = row.querySelector('[name="paper_money_item"]')?.value || '';
         const location = row.querySelector('[name="paper_money_location"]')?.value || '';
-        return [date, quantity, location].join('|');
-      }).filter(value => value !== '||').join('\n');
+        return { date, quantity, location };
+      }).filter(item => item.date || item.quantity || item.location);
+    const sync = () => {
+      hidden.value = collectRows()
+        .map(item => [item.date, item.quantity, item.location].join('|'))
+        .join('\n');
     };
     const addRow = values => {
       const row = document.createElement('tr');
-      row.innerHTML = '<td><input type="date" name="paper_money_date"></td><td><input type="number" min="0" inputmode="numeric" name="paper_money_item"></td><td><input name="paper_money_location"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>';
+      row.innerHTML = '<td><input type="text" name="paper_money_date" placeholder="YYY/MM/DD" inputmode="numeric" pattern="\\d{3}[/-]\\d{1,2}[/-]\\d{1,2}"></td><td><input type="number" min="0" inputmode="numeric" name="paper_money_item"></td><td><input name="paper_money_location"></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>';
       row.querySelector('[name="paper_money_date"]').value = values?.date || '';
       row.querySelector('[name="paper_money_item"]').value = values?.quantity || '';
       row.querySelector('[name="paper_money_location"]').value = values?.location || '';
@@ -1383,15 +1397,40 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       tbody.append(row);
     };
 
+    const normalizeRows = value => {
+      if (Array.isArray(value)) {
+        return value.map(item => typeof item === 'object' && item
+          ? {
+              date: String(item.date || ''),
+              quantity: String(item.quantity || ''),
+              location: String(item.location || '')
+            }
+          : { date: '', quantity: String(item || ''), location: '' });
+      }
+      return String(value || '').split(/\r?\n/).filter(Boolean).map(line => {
+        const parts = line.split('|');
+        return parts.length >= 3
+          ? { date: parts[0] || '', quantity: parts[1] || '', location: parts.slice(2).join('|') }
+          : { date: '', quantity: line, location: '' };
+      });
+    };
+    const loadRows = value => {
+      const values = normalizeRows(value);
+      tbody.innerHTML = '';
+      (values.length ? values : [{}]).forEach(addRow);
+      sync();
+    };
+
     const oldValues = [...tbody.querySelectorAll('[name="paper_money_item"]')].map(input => ({ quantity: input.value }));
-    tbody.innerHTML = '';
-    (oldValues.length ? oldValues : [{}]).forEach(addRow);
+    const initialValue = hidden.value ? hidden.value : oldValues;
+    loadRows(initialValue);
 
     const oldAdd = field.querySelector('.add');
     const add = oldAdd.cloneNode(true);
     oldAdd.replaceWith(add);
     add.addEventListener('click', () => { addRow({}); updateMetrics(); });
-    sync();
+    window.__loadPaperMoney = loadRows;
+    window.__collectPaperMoney = collectRows;
   })();
 
 ;
@@ -2321,6 +2360,9 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     window.__loadPaperItems?.(
       Array.isArray(data.paperItems) ? data.paperItems : data.fields?.paper_offerings
     );
+    window.__loadPaperMoney?.(
+      Array.isArray(data.paperMoney) ? data.paperMoney : data.fields?.paper_money
+    );
 
     const addSavedRows = (tableId, items) => {
       if (!document.querySelector(`#${tableId} tbody`)) return;
@@ -2519,6 +2561,9 @@ document.getElementById('saveTop')?.remove();
     });
     window.__loadPaperItems?.(
       Array.isArray(record.paperItems) ? record.paperItems : record.fields?.paper_offerings
+    );
+    window.__loadPaperMoney?.(
+      Array.isArray(record.paperMoney) ? record.paperMoney : record.fields?.paper_money
     );
     refreshBasicTimeBranches(form);
 

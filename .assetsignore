@@ -1,0 +1,14 @@
+.git/
+.gitignore
+.assetsignore
+wrangler.jsonc
+supabase/
+*.md
+*.ps1
+*.cmd
+*.bat
+*.docx
+*.zip
+_headers
+*.html
+!index.html

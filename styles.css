@@ -1794,6 +1794,43 @@
     margin: 0 0 14px;
     font-size: 19px;
   }
+  .cloud-google-config-help {
+    margin: -4px 0 16px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .cloud-google-config-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 14px;
+  }
+  .cloud-google-config-form label,
+  .cloud-google-redirect-row label {
+    display: grid;
+    gap: 7px;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .cloud-google-redirect-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .cloud-google-config-status {
+    min-height: 24px;
+    padding-top: 12px;
+    color: var(--brand-dark);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .cloud-google-config-status.error {
+    color: #b42318;
+  }
   .cloud-member-row,
   .cloud-invite-row {
     display: grid;
@@ -1875,6 +1912,13 @@
     .cloud-invite-row {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .cloud-google-config-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .cloud-google-config-form .btn {
+      grid-column: 1 / -1;
+      width: 100%;
+    }
     .cloud-member-identity,
     .cloud-invite-row > div,
     .cloud-invite-row code {
@@ -1883,6 +1927,8 @@
   }
   @media (max-width: 560px) {
     .cloud-staff-invite-form,
+    .cloud-google-config-form,
+    .cloud-google-redirect-row,
     .cloud-member-row,
     .cloud-invite-row {
       grid-template-columns: 1fr;

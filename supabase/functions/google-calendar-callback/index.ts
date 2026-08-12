@@ -6,7 +6,7 @@ import {
   encryptRefreshToken,
   errorResponse,
   googleRedirectUri,
-  requiredEnv,
+  loadCompanyGoogleOAuthClient,
   validateReturnUrl,
   verifyOAuthState,
 } from "../_shared/google-calendar.ts";
@@ -62,21 +62,32 @@ Deno.serve(async (request) => {
     const admin = createAdminClient();
     const { data: membership, error: membershipError } = await admin
       .from("company_members")
-      .select("company_id, active, read_only")
+      .select("company_id, role, active, read_only")
       .eq("user_id", state.userId)
       .eq("company_id", state.companyId)
       .eq("active", true)
       .maybeSingle();
     if (membershipError || !membership) throw new HttpError(403, "此帳號已無公司權限。", "membership_required");
     if (membership.read_only) throw new HttpError(403, "此帳號只有瀏覽權限。", "read_only");
+    if (membership.role !== "owner") {
+      throw new HttpError(403, "只有公司老闆可以連結 Google Cloud 專案。", "owner_required");
+    }
+
+    const { data: existingConnection, error: existingConnectionError } = await admin
+      .from("google_calendar_connections")
+      .select("refresh_token_ciphertext")
+      .eq("company_id", state.companyId)
+      .maybeSingle();
+    if (existingConnectionError) throw existingConnectionError;
+    const oauthClient = await loadCompanyGoogleOAuthClient(admin, state.companyId, Boolean(existingConnection));
 
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         code,
-        client_id: requiredEnv("GOOGLE_CLIENT_ID"),
-        client_secret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+        client_id: oauthClient.clientId,
+        client_secret: oauthClient.clientSecret,
         redirect_uri: googleRedirectUri(),
         grant_type: "authorization_code",
       }),
@@ -88,12 +99,7 @@ Deno.serve(async (request) => {
 
     let refreshToken = clean(tokens.refresh_token);
     if (!refreshToken) {
-      const { data: existing } = await admin
-        .from("google_calendar_connections")
-        .select("refresh_token_ciphertext")
-        .eq("company_id", state.companyId)
-        .maybeSingle();
-      if (!existing?.refresh_token_ciphertext) {
+      if (!existingConnection?.refresh_token_ciphertext) {
         throw new HttpError(400, "Google 未回傳長期授權，請移除舊授權後重新連結。", "refresh_token_missing");
       }
       return callbackPage(returnUrl, true, "原有 Google 行事曆授權仍然有效，可以返回系統繼續同步。");

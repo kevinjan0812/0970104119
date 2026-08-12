@@ -888,6 +888,27 @@
           <button class="btn primary" type="submit">建立邀請碼</button>
         </form>
         <div class="cloud-staff-message" aria-live="polite"></div>
+        ${activeRole === 'owner' ? `
+        <section class="cloud-staff-panel cloud-google-config-panel">
+          <h2>本公司 Google Cloud 專案</h2>
+          <p class="cloud-google-config-help">每家公司使用自己的 Google Cloud 專案。Client Secret 會送到 Supabase 後端加密保存，儲存後不會再顯示。</p>
+          <form class="cloud-google-config-form" autocomplete="off">
+            <label>OAuth Client ID
+              <input name="client_id" required placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off">
+            </label>
+            <label>OAuth Client Secret
+              <input name="client_secret" type="password" required placeholder="輸入公司專案的 Client Secret" autocomplete="new-password">
+            </label>
+            <button type="submit" class="btn primary">儲存 Google Cloud 設定</button>
+          </form>
+          <div class="cloud-google-redirect-row">
+            <label>Google Cloud 已授權的重新導向 URI
+              <input data-google-redirect-uri readonly value="載入中…">
+            </label>
+            <button type="button" class="btn" data-google-redirect-copy>複製網址</button>
+          </div>
+          <div class="cloud-google-config-status" aria-live="polite"></div>
+        </section>` : ''}
         <section class="cloud-staff-panel">
           <h2>現有成員</h2>
           <div class="cloud-member-list"></div>
@@ -904,10 +925,44 @@
     const memberList = view.querySelector('.cloud-member-list');
     const inviteList = view.querySelector('.cloud-invite-list');
     const inviteForm = view.querySelector('.cloud-staff-invite-form');
+    const googleConfigForm = view.querySelector('.cloud-google-config-form');
+    const googleConfigStatus = view.querySelector('.cloud-google-config-status');
+    const googleRedirectInput = view.querySelector('[data-google-redirect-uri]');
 
     const setMessage = (text, isError = false) => {
       message.textContent = text;
       message.classList.toggle('error', isError);
+    };
+
+    const setGoogleConfigMessage = (text, isError = false) => {
+      if (!googleConfigStatus) return;
+      googleConfigStatus.textContent = text;
+      googleConfigStatus.classList.toggle('error', isError);
+    };
+
+    const renderGoogleConfigStatus = async () => {
+      if (!googleConfigForm) return;
+      setGoogleConfigMessage('正在檢查本公司的 Google Cloud 設定…');
+      try {
+        const result = await invokeGoogleCalendar({
+          action: 'config_status',
+          company_id: activeCompanyId
+        });
+        if (googleRedirectInput) googleRedirectInput.value = result.redirect_uri || '';
+        googleConfigForm.dataset.configured = result.configured ? 'true' : 'false';
+        googleConfigForm.dataset.legacy = result.legacy ? 'true' : 'false';
+        if (result.configured) {
+          setGoogleConfigMessage(result.connected
+            ? '已設定本公司的 Google Cloud 專案，且行事曆已完成授權。'
+            : '已設定本公司的 Google Cloud 專案；請到功德法事排程按「加入GOOGLE日曆」完成授權。');
+        } else if (result.legacy) {
+          setGoogleConfigMessage('目前仍使用舊版共用設定。請填入本公司的 Client ID 與 Client Secret，改用獨立 Google Cloud 專案。');
+        } else {
+          setGoogleConfigMessage('尚未設定。請先在 Google Cloud 建立網頁應用程式憑證，再填入下方資料。');
+        }
+      } catch (error) {
+        setGoogleConfigMessage(`Google Cloud 設定讀取失敗：${error.message}`, true);
+      }
     };
 
     const renderStaffManagement = async () => {
@@ -993,6 +1048,7 @@
         inviteList.append(row);
       });
       setMessage('');
+      await renderGoogleConfigStatus();
     };
 
     if (!view.dataset.bound) {
@@ -1006,6 +1062,37 @@
       };
       inviteRole.addEventListener('change', syncInviteReadOnly);
       syncInviteReadOnly();
+
+      googleConfigForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (googleConfigForm.dataset.configured === 'true'
+          && !window.confirm('更新 Google Cloud 專案會清除目前的 Google 行事曆授權，需要重新授權。確定繼續？')) return;
+        const values = new FormData(googleConfigForm);
+        const clientId = String(values.get('client_id') || '').trim();
+        const clientSecret = String(values.get('client_secret') || '').trim();
+        setGoogleConfigMessage('正在加密並儲存本公司的 Google Cloud 設定…');
+        try {
+          const result = await invokeGoogleCalendar({
+            action: 'save_config',
+            company_id: activeCompanyId,
+            client_id: clientId,
+            client_secret: clientSecret
+          });
+          googleConfigForm.reset();
+          if (googleRedirectInput) googleRedirectInput.value = result.redirect_uri || '';
+          setGoogleConfigMessage('設定已安全儲存。下一步請到功德法事排程按「加入GOOGLE日曆」完成授權。');
+          await renderGoogleConfigStatus();
+        } catch (error) {
+          setGoogleConfigMessage(`儲存失敗：${error.message}`, true);
+        }
+      });
+
+      view.querySelector('[data-google-redirect-copy]')?.addEventListener('click', async () => {
+        const value = String(googleRedirectInput?.value || '').trim();
+        if (!value || value === '載入中…') return;
+        await navigator.clipboard.writeText(value);
+        setGoogleConfigMessage('重新導向 URI 已複製。');
+      });
 
       inviteForm.addEventListener('submit', async event => {
         event.preventDefault();

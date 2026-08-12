@@ -44,11 +44,12 @@ export function createAdminClient(): SupabaseClient {
 
 export async function authenticateCompanyMember(
   request: Request,
-  options: { requireWrite?: boolean; companyId?: string } = {},
+  options: { requireWrite?: boolean; requireOwner?: boolean; companyId?: string } = {},
 ): Promise<{
   admin: SupabaseClient;
   userId: string;
   companyId: string;
+  role: string;
   readOnly: boolean;
 }> {
   const authorization = request.headers.get("Authorization") || "";
@@ -63,7 +64,7 @@ export async function authenticateCompanyMember(
 
   let membershipQuery = admin
     .from("company_members")
-    .select("company_id, read_only, active")
+    .select("company_id, role, read_only, active")
     .eq("user_id", userData.user.id)
     .eq("active", true);
   if (clean(options.companyId)) membershipQuery = membershipQuery.eq("company_id", clean(options.companyId));
@@ -77,11 +78,15 @@ export async function authenticateCompanyMember(
   if (options.requireWrite && membership.read_only) {
     throw new HttpError(403, "此帳號只有瀏覽權限，不能同步 Google 行事曆。", "read_only");
   }
+  if (options.requireOwner && membership.role !== "owner") {
+    throw new HttpError(403, "只有公司老闆可以設定或連結 Google Cloud 專案。", "owner_required");
+  }
 
   return {
     admin,
     userId: userData.user.id,
     companyId: membership.company_id,
+    role: clean(membership.role),
     readOnly: Boolean(membership.read_only),
   };
 }
@@ -188,20 +193,20 @@ async function importEncryptionKey(usages: KeyUsage[]): Promise<CryptoKey> {
   return crypto.subtle.importKey("raw", keyBytes, "AES-GCM", false, usages);
 }
 
-export async function encryptRefreshToken(refreshToken: string): Promise<string> {
+export async function encryptGoogleCredential(value: string): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     await importEncryptionKey(["encrypt"]),
-    new TextEncoder().encode(refreshToken),
+    new TextEncoder().encode(value),
   );
   return `v1.${bytesToBase64Url(iv)}.${bytesToBase64Url(new Uint8Array(encrypted))}`;
 }
 
-export async function decryptRefreshToken(ciphertext: string): Promise<string> {
+export async function decryptGoogleCredential(ciphertext: string): Promise<string> {
   const [version, iv, encrypted] = clean(ciphertext).split(".");
   if (version !== "v1" || !iv || !encrypted) {
-    throw new HttpError(500, "Google 授權資料格式不正確，請重新連結。", "invalid_token_data");
+    throw new HttpError(500, "Google 加密資料格式不正確，請重新設定。", "invalid_credential_data");
   }
   try {
     const plain = await crypto.subtle.decrypt(
@@ -211,21 +216,64 @@ export async function decryptRefreshToken(ciphertext: string): Promise<string> {
     );
     return new TextDecoder().decode(plain);
   } catch {
-    throw new HttpError(500, "無法讀取 Google 授權資料，請重新連結。", "token_decryption_failed");
+    throw new HttpError(500, "無法讀取 Google 加密資料，請重新設定。", "credential_decryption_failed");
   }
+}
+
+export const encryptRefreshToken = encryptGoogleCredential;
+export const decryptRefreshToken = decryptGoogleCredential;
+
+export type GoogleOAuthClient = {
+  clientId: string;
+  clientSecret: string;
+  source: "company" | "legacy";
+};
+
+export async function loadCompanyGoogleOAuthClient(
+  admin: SupabaseClient,
+  companyId: string,
+  allowLegacy = false,
+): Promise<GoogleOAuthClient> {
+  const { data, error } = await admin
+    .from("google_calendar_oauth_configs")
+    .select("client_id, client_secret_ciphertext")
+    .eq("company_id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  if (data?.client_id && data?.client_secret_ciphertext) {
+    return {
+      clientId: clean(data.client_id),
+      clientSecret: await decryptGoogleCredential(data.client_secret_ciphertext),
+      source: "company",
+    };
+  }
+
+  if (allowLegacy) {
+    const clientId = clean(Deno.env.get("GOOGLE_CLIENT_ID"));
+    const clientSecret = clean(Deno.env.get("GOOGLE_CLIENT_SECRET"));
+    if (clientId && clientSecret) return { clientId, clientSecret, source: "legacy" };
+  }
+  throw new HttpError(
+    409,
+    "公司尚未設定自己的 Google Cloud 專案，請由老闆到員工管理完成設定。",
+    "google_project_not_configured",
+  );
 }
 
 export function googleRedirectUri(): string {
   return `${requiredEnv("SUPABASE_URL").replace(/\/$/, "")}/functions/v1/google-calendar-callback`;
 }
 
-export async function exchangeRefreshToken(refreshToken: string): Promise<string> {
+export async function exchangeRefreshToken(
+  refreshToken: string,
+  oauthClient: GoogleOAuthClient,
+): Promise<string> {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: requiredEnv("GOOGLE_CLIENT_ID"),
-      client_secret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+      client_id: oauthClient.clientId,
+      client_secret: oauthClient.clientSecret,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),

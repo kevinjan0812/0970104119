@@ -6,28 +6,24 @@
     return;
   }
 
-  const rememberDurationMs = 30 * 24 * 60 * 60 * 1000;
-  const rememberUntilKey = 'funeral-cloud-remember-until-v1';
+  const rememberKey = 'funeral-cloud-remember-v2';
   const projectReference = new URL(config.url).hostname.split('.')[0];
   const authStorageKey = `sb-${projectReference}-auth-token`;
-  const storedRememberUntil = Number(localStorage.getItem(rememberUntilKey) || 0);
-  let rememberSession = storedRememberUntil > Date.now();
-  if (!rememberSession && storedRememberUntil) {
-    localStorage.removeItem(rememberUntilKey);
-    localStorage.removeItem(authStorageKey);
-    localStorage.removeItem(`${authStorageKey}-code-verifier`);
-  } else if (!storedRememberUntil && localStorage.getItem(authStorageKey)) {
-    // 舊版原本會永久保留登入；升級後從第一次開啟起改為最多保留 30 天。
+  const legacyRememberUntilKey = 'funeral-cloud-remember-until-v1';
+  let rememberSession = localStorage.getItem(rememberKey) === 'true';
+  if (!rememberSession && localStorage.getItem(legacyRememberUntilKey)) {
+    // 升級既有「記住我 30 天」的登入為永久記住。
     rememberSession = true;
-    localStorage.setItem(rememberUntilKey, String(Date.now() + rememberDurationMs));
+    localStorage.setItem(rememberKey, 'true');
   }
+  localStorage.removeItem(legacyRememberUntilKey);
   const setRememberSession = enabled => {
     rememberSession = Boolean(enabled);
     if (rememberSession) {
-      localStorage.setItem(rememberUntilKey, String(Date.now() + rememberDurationMs));
+      localStorage.setItem(rememberKey, 'true');
       return;
     }
-    localStorage.removeItem(rememberUntilKey);
+    localStorage.removeItem(rememberKey);
     localStorage.removeItem(authStorageKey);
     localStorage.removeItem(`${authStorageKey}-code-verifier`);
   };
@@ -44,7 +40,7 @@
       sessionStorage.removeItem(key);
       if (key === authStorageKey) {
         rememberSession = false;
-        localStorage.removeItem(rememberUntilKey);
+        localStorage.removeItem(rememberKey);
       }
     }
   };
@@ -205,7 +201,7 @@
           <div class="cloud-auth-options">
             <label class="cloud-auth-remember">
               <input name="remember_me" type="checkbox">
-              <span>記住我 30 天</span>
+              <span>永久記住我</span>
             </label>
             <button class="cloud-auth-link" type="button" data-auth-action="forgot-password">忘記密碼？</button>
           </div>

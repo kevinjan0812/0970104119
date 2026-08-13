@@ -4687,244 +4687,113 @@ document.querySelector('[name="ceremony_offerings"]')
     });
     const exportDateSelection = async () => {
       if (window.funeralCloud?.readOnly) {
+        document.body.dataset.dateSelectionExportStatus = 'forbidden';
         window.alert('此帳號僅可瀏覽，不能匯出資料。');
         return;
       }
+      document.body.dataset.dateSelectionExportStatus = 'starting';
+      delete document.body.dataset.dateSelectionExportBytes;
+      delete document.body.dataset.dateSelectionExportName;
       syncDateCaseSummary();
       const sourceTable = pane.querySelector('#dateSelectionTable');
       if (!sourceTable) {
         window.alert('找不到擇日資料表，無法匯出。');
         return;
       }
-      await document.fonts?.ready;
       const caseName = String(form.elements.case_name?.value || '').trim() || '擇日資料表';
       const fieldValue = name => String(form.elements[name]?.value || '').trim();
       const summaryValue = selector => String(pane.querySelector(selector)?.value || '').trim();
-      const summaryDateValue = prefix => {
+      const summaryDateParts = prefix => {
         const field = pane.querySelector(`[data-date-with-time="${prefix}"]`)?.closest('.date-basic-summary-field');
-        if (!field) return '';
-        return [
-          field.querySelector(`[data-date-with-time="${prefix}"]`)?.value,
-          field.querySelector(`[data-summary-lunar="${prefix}"]`)?.value,
-          field.querySelector(`[data-summary-time="${prefix}"]`)?.value,
-          field.querySelector(`[data-summary-branch="${prefix}"]`)?.value
-        ].map(value => String(value || '').trim()).filter(Boolean).join('　');
+        return {
+          solar: String(field?.querySelector(`[data-date-with-time="${prefix}"]`)?.value || '').trim(),
+          lunar: String(field?.querySelector(`[data-summary-lunar="${prefix}"]`)?.value || '').trim(),
+          time: String(field?.querySelector(`[data-summary-time="${prefix}"]`)?.value || '').trim(),
+          branch: String(field?.querySelector(`[data-summary-branch="${prefix}"]`)?.value || '').trim()
+        };
+      };
+      const summaryDateValue = prefix => Object.values(summaryDateParts(prefix)).filter(Boolean).join('　');
+      const zodiacFromLunar = value => {
+        const branch = String(value || '').match(/[甲乙丙丁戊己庚辛壬癸]([子丑寅卯辰巳午未申酉戌亥])/)?.[1];
+        if (!branch) return '';
+        const zodiac = { 子: '鼠', 丑: '牛', 寅: '虎', 卯: '兔', 辰: '龍', 巳: '蛇', 午: '馬', 未: '羊', 申: '猴', 酉: '雞', 戌: '狗', 亥: '豬' };
+        return zodiac[branch] ? `肖${zodiac[branch]}` : '';
       };
       const familyRows = [...sourceTable.tBodies[0].rows].map(row => ({
         honorific: String(row.querySelector('[name="selection_honorific"]')?.value || '').trim(),
         name: String(row.querySelector('[name="selection_person_name"]')?.value || '').trim(),
         lunarBirth: String(row.querySelector('[name="selection_lunar_birth"]')?.value || '').trim(),
-        solarBirth: String(row.querySelector('[name="selection_solar_birth"]')?.value || '').trim()
+        solarBirth: String(row.querySelector('[name="selection_solar_birth"]')?.value || '').trim(),
+        fate: zodiacFromLunar(row.querySelector('[name="selection_lunar_birth"]')?.value)
       })).filter(row => Object.values(row).some(Boolean));
 
-      // A4 橫式 3508 × 2480 像素，嵌入 841.89 × 595.28 pt 頁面後為 300 DPI。
-      const pageWidth = 3508;
-      const pageHeight = 2480;
-      const margin = 170;
-      const contentWidth = pageWidth - margin * 2;
-      const pages = [];
-      let canvas;
-      let context;
-      let y;
+      const Docxtemplater = window.docxtemplater || window.Docxtemplater;
+      if (window.PizZip && Docxtemplater && window.DATE_SELECTION_WORD_TEMPLATE_BASE64) {
+        try {
+          const birth = summaryDateParts('birth');
+          const death = summaryDateParts('death');
+          const templateData = {
+            deceased_name: summaryValue('[data-case-summary="case_name"]') || caseName,
+            age: summaryValue('[data-case-age]'),
+            address: summaryValue('[data-case-summary="address"]') || fieldValue('address'),
+            birth_solar: birth.solar || fieldValue('birth_date'),
+            birth_lunar: birth.lunar,
+            birth_time: birth.time,
+            birth_branch: birth.branch || birth.time,
+            death_solar: death.solar || fieldValue('death_date'),
+            death_lunar: death.lunar,
+            death_time: death.time,
+            death_branch: death.branch || death.time
+          };
+          for (let index = 0; index < 30; index += 1) {
+            const slot = String(index + 1).padStart(2, '0');
+            const family = familyRows[index] || {};
+            templateData[`family_${slot}_honorific`] = family.honorific || '';
+            templateData[`family_${slot}_name`] = family.name || '';
+            templateData[`family_${slot}_lunar`] = family.lunarBirth || '';
+            templateData[`family_${slot}_solar`] = family.solarBirth || '';
+            templateData[`family_${slot}_fate`] = family.fate || '';
+          }
 
-      const drawLine = (x1, y1, x2, y2, color = '#cbd5e1', width = 3) => {
-        context.beginPath();
-        context.moveTo(x1, y1);
-        context.lineTo(x2, y2);
-        context.strokeStyle = color;
-        context.lineWidth = width;
-        context.stroke();
-      };
-      const fillText = (text, x, top, maxWidth) => {
-        const value = String(text || '');
-        if (!maxWidth || context.measureText(value).width <= maxWidth) {
-          context.fillText(value, x, top);
+          const binary = window.atob(window.DATE_SELECTION_WORD_TEMPLATE_BASE64);
+          const bytes = new Uint8Array(binary.length);
+          for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+          const documentTemplate = new Docxtemplater(new window.PizZip(bytes), {
+            paragraphLoop: true,
+            linebreaks: true,
+            delimiters: { start: '{{', end: '}}' }
+          });
+          documentTemplate.render(templateData);
+          const blob = typeof documentTemplate.toBlob === 'function'
+            ? documentTemplate.toBlob()
+            : documentTemplate.getZip().generate({
+                type: 'blob',
+                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+              });
+          const safeName = `${caseName}－擇日用`.replace(/[\\/:*?"<>|]/g, '_');
+          document.body.dataset.dateSelectionExportStatus = 'word-success';
+          document.body.dataset.dateSelectionExportBytes = String(blob.size || 0);
+          document.body.dataset.dateSelectionExportName = `${safeName}.docx`;
+          const fileUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = fileUrl;
+          link.download = `${safeName}.docx`;
+          document.body.append(link);
+          link.click();
+          link.remove();
+          window.setTimeout(() => URL.revokeObjectURL(fileUrl), 3000);
+          return;
+        } catch (error) {
+          document.body.dataset.dateSelectionExportStatus = 'word-error';
+          console.error('擇日 Word 匯出失敗。', error);
+          window.alert('Word 範本匯出失敗，請重新整理後再試一次。');
           return;
         }
-        let fitted = value;
-        while (fitted && context.measureText(`${fitted}…`).width > maxWidth) fitted = fitted.slice(0, -1);
-        context.fillText(`${fitted}…`, x, top);
-      };
-      const drawPageHeader = continued => {
-        context.fillStyle = '#115d54';
-        context.font = 'bold 76px "Microsoft JhengHei", "Noto Sans TC", sans-serif';
-        context.fillText(`${caseName}－擇日資料表${continued ? '（續）' : ''}`, margin, margin);
-        drawLine(margin, margin + 112, pageWidth - margin, margin + 112, '#197a6e', 6);
-        y = margin + 160;
-      };
-      const newPage = continued => {
-        canvas = document.createElement('canvas');
-        canvas.width = pageWidth;
-        canvas.height = pageHeight;
-        context = canvas.getContext('2d');
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, pageWidth, pageHeight);
-        context.textBaseline = 'top';
-        pages.push(canvas);
-        drawPageHeader(continued);
-      };
-      const drawSummary = () => {
-        const deceasedName = summaryValue('[data-case-summary="case_name"]') || caseName;
-        const age = summaryValue('[data-case-age]');
-        const address = summaryValue('[data-case-summary="address"]') || fieldValue('address');
-        const birth = summaryDateValue('birth') || fieldValue('birth_date');
-        const death = summaryDateValue('death') || fieldValue('death_date');
-        const rows = [
-          [`亡者姓名：${deceasedName}`, `享陽：${age ? `${age} 歲` : ''}`],
-          [`出生日期：${birth}`, `過世日期：${death}`],
-          [`地址：${address}`, '']
-        ];
-        context.font = '44px "Microsoft JhengHei", "Noto Sans TC", sans-serif';
-        context.fillStyle = '#17212b';
-        rows.forEach(([left, right], index) => {
-          const rowHeight = index === 2 ? 110 : 92;
-          const isDateRow = index === 1;
-          context.fillStyle = index % 2 ? '#ffffff' : '#f8fafc';
-          context.fillRect(margin, y, contentWidth, rowHeight);
-          context.strokeStyle = '#cbd5e1';
-          context.lineWidth = 3;
-          context.strokeRect(margin, y, contentWidth, rowHeight);
-          context.fillStyle = '#17212b';
-          context.font = `${isDateRow ? 38 : 44}px "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
-          fillText(left, margin + 28, y + 23, index === 2 ? contentWidth - 56 : contentWidth * (isDateRow ? .47 : .62));
-          if (right) fillText(right, margin + contentWidth * (isDateRow ? .51 : .66), y + 23, contentWidth * (isDateRow ? .46 : .31));
-          y += rowHeight;
-        });
-        y += 68;
-      };
-
-      const columnWidths = [430, 620, 1059, 1059];
-      const headers = ['稱謂', '姓名', '農曆出生日期', '國曆出生日期'];
-      const rowHeight = 150;
-      const headerHeight = 112;
-      const drawTableHeader = () => {
-        let x = margin;
-        context.font = 'bold 43px "Microsoft JhengHei", "Noto Sans TC", sans-serif';
-        headers.forEach((header, index) => {
-          context.fillStyle = '#e8f5f1';
-          context.fillRect(x, y, columnWidths[index], headerHeight);
-          context.strokeStyle = '#a8c7c2';
-          context.lineWidth = 3;
-          context.strokeRect(x, y, columnWidths[index], headerHeight);
-          context.fillStyle = '#334155';
-          context.textAlign = 'center';
-          context.fillText(header, x + columnWidths[index] / 2, y + 30);
-          x += columnWidths[index];
-        });
-        context.textAlign = 'left';
-        y += headerHeight;
-      };
-      const drawFamilyRow = row => {
-        let x = margin;
-        context.font = '41px "Microsoft JhengHei", "Noto Sans TC", sans-serif';
-        [row.honorific, row.name, row.lunarBirth, row.solarBirth].forEach((value, index) => {
-          context.fillStyle = '#ffffff';
-          context.fillRect(x, y, columnWidths[index], rowHeight);
-          context.strokeStyle = '#cbd5e1';
-          context.lineWidth = 3;
-          context.strokeRect(x, y, columnWidths[index], rowHeight);
-          context.fillStyle = '#17212b';
-          fillText(value, x + 24, y + 48, columnWidths[index] - 48);
-          x += columnWidths[index];
-        });
-        y += rowHeight;
-      };
-
-      newPage(false);
-      drawSummary();
-      context.fillStyle = '#115d54';
-      context.font = 'bold 54px "Microsoft JhengHei", "Noto Sans TC", sans-serif';
-      context.fillText('家屬', margin, y);
-      y += 84;
-      drawTableHeader();
-      const rowsToDraw = familyRows.length ? familyRows : [{
-        honorific: '',
-        name: '目前無家屬資料',
-        lunarBirth: '',
-        solarBirth: ''
-      }];
-      rowsToDraw.forEach(row => {
-        if (y + rowHeight > pageHeight - margin) {
-          newPage(true);
-          drawTableHeader();
-        }
-        drawFamilyRow(row);
-      });
-
-      const encoder = new TextEncoder();
-      const encode = text => encoder.encode(text);
-      const concat = arrays => {
-        const length = arrays.reduce((sum, array) => sum + array.length, 0);
-        const result = new Uint8Array(length);
-        let position = 0;
-        arrays.forEach(array => {
-          result.set(array, position);
-          position += array.length;
-        });
-        return result;
-      };
-      const jpegBytes = pages.map(page => {
-        const base64 = page.toDataURL('image/jpeg', .95).split(',')[1];
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-        return bytes;
-      });
-      const objectCount = 2 + pages.length * 3;
-      const objects = new Array(objectCount + 1);
-      const pageReferences = [];
-      jpegBytes.forEach((image, index) => {
-        const pageObject = 3 + index * 3;
-        const imageObject = pageObject + 1;
-        const contentObject = pageObject + 2;
-        pageReferences.push(`${pageObject} 0 R`);
-        objects[pageObject] = encode(
-          `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] ` +
-          `/Resources << /XObject << /Im0 ${imageObject} 0 R >> >> /Contents ${contentObject} 0 R >>`
-        );
-        objects[imageObject] = concat([
-          encode(
-            `<< /Type /XObject /Subtype /Image /Width ${pageWidth} /Height ${pageHeight} ` +
-            `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.length} >>\nstream\n`
-          ),
-          image,
-          encode('\nendstream')
-        ]);
-        const drawing = encode('q 841.89 0 0 595.28 0 0 cm /Im0 Do Q');
-        objects[contentObject] = concat([
-          encode(`<< /Length ${drawing.length} >>\nstream\n`),
-          drawing,
-          encode('\nendstream')
-        ]);
-      });
-      objects[1] = encode('<< /Type /Catalog /Pages 2 0 R >>');
-      objects[2] = encode(`<< /Type /Pages /Kids [${pageReferences.join(' ')}] /Count ${pages.length} >>`);
-      const pdfParts = [encode('%PDF-1.4\n')];
-      const offsets = new Array(objectCount + 1).fill(0);
-      let offset = pdfParts[0].length;
-      for (let number = 1; number <= objectCount; number += 1) {
-        const objectBytes = concat([encode(`${number} 0 obj\n`), objects[number], encode('\nendobj\n')]);
-        offsets[number] = offset;
-        pdfParts.push(objectBytes);
-        offset += objectBytes.length;
+      } else {
+        document.body.dataset.dateSelectionExportStatus = 'missing-dependency';
+        window.alert('Word 匯出元件尚未載入完成，請重新整理後再試一次。');
+        return;
       }
-      const xrefOffset = offset;
-      let xref = `xref\n0 ${objectCount + 1}\n0000000000 65535 f \n`;
-      for (let number = 1; number <= objectCount; number += 1) {
-        xref += `${String(offsets[number]).padStart(10, '0')} 00000 n \n`;
-      }
-      xref += `trailer\n<< /Size ${objectCount + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-      pdfParts.push(encode(xref));
-
-      const file = new Blob(pdfParts, { type:'application/pdf' });
-      const fileUrl = URL.createObjectURL(file);
-      const link = document.createElement('a');
-      link.href = fileUrl;
-      link.download = `${caseName.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')}－擇日資料表.pdf`;
-      document.body.append(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(fileUrl), 3000);
     };
     pane.querySelector('.date-selection-export')?.addEventListener('click', exportDateSelection);
     const lunarInfoFromSolarDate = value => {

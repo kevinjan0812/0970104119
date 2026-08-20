@@ -233,6 +233,7 @@ Deno.serve(async (request) => {
         returnUrl,
         exp: Date.now() + 10 * 60 * 1000,
         nonce: crypto.randomUUID(),
+        requireFreshToken: Boolean(input.force_reconnect),
       });
       const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authorizationUrl.search = new URLSearchParams({

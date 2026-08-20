@@ -120,6 +120,7 @@ export type OAuthState = {
   returnUrl: string;
   exp: number;
   nonce: string;
+  requireFreshToken?: boolean;
 };
 
 export async function signOAuthState(payload: OAuthState): Promise<string> {

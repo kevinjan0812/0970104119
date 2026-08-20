@@ -805,6 +805,8 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
       setFormVisible(true);
       formSection.querySelector('.tabs button[data-tab="basic"]')?.click();
       window.__editingCaseNo = '';
+      window.__markArchiveCaseActive?.('');
+      window.__refreshCurrentCaseWordExport?.();
       HTMLFormElement.prototype.reset.call(form);
       window.__loadPaperItems?.([]);
       window.__loadPaperMoney?.([]);
@@ -2290,6 +2292,8 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
         : '';
       if (editingCaseNo) {
         window.__editingCaseNo = data.fields.case_no;
+        window.__markArchiveCaseActive?.(data.fields.case_no);
+        window.__refreshCurrentCaseWordExport?.();
         syncEditCaseTitle();
       }
 
@@ -2547,6 +2551,8 @@ document.getElementById('saveTop')?.remove();
     if (!form || !record) throw new Error('找不到案件表單或案件資料');
     const archiveSelection = document.querySelector('.case-archive-navigation button.archive-active');
     window.__editingCaseNo = String(record?.fields?.case_no || '').trim();
+    window.__markArchiveCaseActive?.(window.__editingCaseNo);
+    window.__refreshCurrentCaseWordExport?.();
     HTMLFormElement.prototype.reset.call(form);
 
     ['contacts', 'schedules', 'vendorsTable', 'ritualsTable'].forEach(id => {
@@ -3987,6 +3993,48 @@ document.getElementById('saveTop')?.remove();
   };
   window.__downloadCaseWord = downloadRecordWord;
 
+  document.getElementById('currentCaseWordExport')?.remove();
+  const topActions = document.querySelector('.top .actions');
+  if (topActions) {
+    const currentCaseWordExport = document.createElement('button');
+    currentCaseWordExport.type = 'button';
+    currentCaseWordExport.id = 'currentCaseWordExport';
+    currentCaseWordExport.className = 'btn export-word-case';
+    currentCaseWordExport.textContent = '匯出 Word';
+
+    const refreshCurrentCaseWordExport = () => {
+      currentCaseWordExport.hidden = !String(window.__editingCaseNo || '').trim();
+    };
+    window.__refreshCurrentCaseWordExport = refreshCurrentCaseWordExport;
+
+    currentCaseWordExport.addEventListener('click', () => {
+      const caseNo = String(window.__editingCaseNo || '').trim();
+      if (!caseNo) return;
+      if (window.__hasUnsavedCaseChanges?.()) {
+        window.alert('目前有尚未儲存的修改，請先按「儲存案件」再匯出 Word。');
+        return;
+      }
+      let records = [];
+      try {
+        const stored = JSON.parse(localStorage.getItem('funeral-case-records-v1') || '[]');
+        records = Array.isArray(stored) ? stored : [];
+      } catch {
+        records = [];
+      }
+      const record = records.find(item =>
+        String(item?.fields?.case_no || '').trim() === caseNo
+      );
+      if (!record) {
+        window.alert('找不到目前案件的已儲存資料，請先按「儲存案件」再試。');
+        return;
+      }
+      downloadRecordWord(record);
+    });
+
+    topActions.prepend(currentCaseWordExport);
+    refreshCurrentCaseWordExport();
+  }
+
   const addExportButtons = () => {
     document.querySelectorAll('.case-list-view .case-list-row').forEach(row => {
       const actions = row.querySelector('.case-list-row-actions');
@@ -4129,6 +4177,17 @@ document.querySelector('[name="ceremony_offerings"]')
     document.querySelector('.top .actions')?.style.removeProperty('display');
   };
 
+  const markArchiveCaseActive = caseNo => {
+    const selectedCaseNo = String(caseNo || '').trim();
+    archive.querySelectorAll('.case-archive-case-button').forEach(button => {
+      const selected = Boolean(selectedCaseNo) && button.dataset.caseNo === selectedCaseNo;
+      button.classList.toggle('case-selected', selected);
+      if (selected) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+  };
+  window.__markArchiveCaseActive = markArchiveCaseActive;
+
   const showMonthPage = (year, month) => {
     const filtered = records()
       .filter(record => {
@@ -4252,7 +4311,8 @@ document.querySelector('[name="ceremony_offerings"]')
       if (year === '未排日期') return;
       if (!groups.has(year)) groups.set(year, new Map());
       const months = groups.get(year);
-      months.set(month, (months.get(month) || 0) + 1);
+      if (!months.has(month)) months.set(month, []);
+      months.get(month).push(record);
     });
 
     archive.innerHTML = '';
@@ -4286,22 +4346,65 @@ document.querySelector('[name="ceremony_offerings"]')
 
       [...groups.get(year).entries()]
         .sort(([a], [b]) => a.localeCompare(b))
-        .forEach(([month, count]) => {
+        .forEach(([month, monthRecords]) => {
+          monthRecords.sort((a, b) =>
+            String(a?.fields?.case_no || '').localeCompare(
+              String(b?.fields?.case_no || ''),
+              'zh-Hant',
+              { numeric: true }
+            )
+          );
+          const monthGroup = document.createElement('div');
+          monthGroup.className = 'case-archive-month-group';
           const button = document.createElement('button');
           button.type = 'button';
+          button.className = 'case-archive-month-button';
           button.dataset.year = year;
           button.dataset.month = month;
           button.textContent = year === '未排日期'
-            ? `未排日期（${count}）`
-            : `${Number(month)}月（${count}）`;
+            ? `未排日期（${monthRecords.length}）`
+            : `${Number(month)}月（${monthRecords.length}）`;
           button.addEventListener('click', event => {
             event.stopPropagation();
             showMonthPage(year, month);
           });
-          details.append(button);
+          monthGroup.append(button);
+
+          const caseList = document.createElement('div');
+          caseList.className = 'case-archive-month-cases';
+          monthRecords.forEach(record => {
+            const fields = record.fields || {};
+            const caseButton = document.createElement('button');
+            caseButton.type = 'button';
+            caseButton.className = 'case-archive-case-button';
+            caseButton.dataset.caseNo = String(fields.case_no || '').trim();
+            caseButton.title = `${fields.case_no || '未填案號'} ${fields.case_name || '未命名案件'}`;
+
+            const caseNo = document.createElement('span');
+            caseNo.className = 'case-archive-case-no';
+            caseNo.textContent = fields.case_no || '未填案號';
+            const caseName = document.createElement('span');
+            caseName.className = 'case-archive-case-name';
+            caseName.textContent = fields.case_name || '未命名案件';
+            caseButton.append(caseNo, caseName);
+
+            caseButton.addEventListener('click', event => {
+              event.stopPropagation();
+              if (typeof window.__openCaseForEdit !== 'function') {
+                window.alert('編輯功能尚未完成載入，請重新整理頁面。');
+                return;
+              }
+              markArchiveCaseActive(caseButton.dataset.caseNo);
+              window.__openCaseForEdit(record);
+            });
+            caseList.append(caseButton);
+          });
+          monthGroup.append(caseList);
+          details.append(monthGroup);
         });
       archive.append(details);
     });
+    markArchiveCaseActive(window.__editingCaseNo);
   };
 
   overviewButton.addEventListener('click', () => {
@@ -4560,6 +4663,8 @@ document.querySelector('[name="ceremony_offerings"]')
       }
     });
     actions.prepend(sortButton);
+    const currentCaseWordExport = document.getElementById('currentCaseWordExport');
+    if (currentCaseWordExport) actions.insertBefore(currentCaseWordExport, sortButton);
     const navButtons = [...document.querySelectorAll('.sidebar .nav > button')];
     const listButton = navButtons.find(button => button.textContent.includes('案件列表'));
     listButton?.addEventListener('click', () => {
@@ -5398,13 +5503,14 @@ document.querySelector('[name="ceremony_offerings"]')
     schedule_key: row.dataset.googleCalendarSyncId || ''
   });
 
-  const beginGoogleAuthorization = async (row, button, popup) => {
+  const beginGoogleAuthorization = async (row, button, popup, forceReconnect = false) => {
     pendingCalendarSync = { row, button };
     let result;
     try {
       result = await window.funeralCloud.googleCalendar({
         action: 'authorize',
-        return_url: window.location.href
+        return_url: window.location.href,
+        force_reconnect: forceReconnect
       });
     } catch (error) {
       pendingCalendarSync = null;
@@ -5451,9 +5557,9 @@ document.querySelector('[name="ceremony_offerings"]')
       }
       window.flash?.(updating ? '已更新 Google 行事曆。' : '已加入 Google 行事曆。');
     } catch (error) {
-      if (error?.code === 'google_not_connected') {
+      if (['google_not_connected', 'google_reconnect_required'].includes(error?.code)) {
         try {
-          await beginGoogleAuthorization(row, button, popup);
+          await beginGoogleAuthorization(row, button, popup, error.code === 'google_reconnect_required');
           return;
         } catch (authorizationError) {
           pendingCalendarSync = null;

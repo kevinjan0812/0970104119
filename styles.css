@@ -1222,6 +1222,9 @@
     background: #115e59;
     border-color: #115e59;
   }
+  #currentCaseWordExport {
+    min-width: 118px;
+  }
 
 .dashboard {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1501,6 +1504,46 @@
   .case-archive-navigation button.archive-active {
     background: rgba(255, 255, 255, .13) !important;
     color: #fff !important;
+  }
+  .case-archive-month-group {
+    margin: 1px 0 5px;
+  }
+  .case-archive-month-cases {
+    margin: 0 0 3px 14px;
+    padding-left: 6px;
+    border-left: 1px solid rgba(255, 255, 255, .16);
+  }
+  .case-archive-navigation .case-archive-case-button {
+    display: grid !important;
+    grid-template-columns: minmax(48px, auto) minmax(0, 1fr);
+    gap: 6px;
+    align-items: baseline;
+    width: calc(100% - 4px) !important;
+    margin: 0 0 1px !important;
+    padding: 5px 6px !important;
+    color: rgba(255, 255, 255, .72) !important;
+    font-size: 12px !important;
+  }
+  .case-archive-case-no {
+    color: #9fe3da;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .case-archive-case-name {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .case-archive-navigation .case-archive-case-button.case-selected {
+    background: #f5c451 !important;
+    color: #123e3a !important;
+    font-weight: 800 !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .72), 0 3px 10px rgba(0, 0, 0, .22);
+  }
+  .case-archive-navigation .case-archive-case-button.case-selected .case-archive-case-no {
+    color: #0b514a;
   }
   .case-archive-empty {
     padding: 5px 8px;
@@ -2065,8 +2108,8 @@
     }
 
     .case-archive-navigation details {
-      flex: 0 0 120px;
-      min-width: 120px;
+      flex: 0 0 190px;
+      min-width: 190px;
       margin: 0;
     }
 
@@ -2858,7 +2901,10 @@
     }
     .date-basic-summary-values { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
   }
-  @media (max-width: 560px) { #customSortToggle { width: 100%; } }
+  @media (max-width: 560px) {
+    #currentCaseWordExport,
+    #customSortToggle { width: 100%; }
+  }
 
 /* 基本資料桌機版：日期另起一列；治喪與安葬區使用固定 24px 欄距。 */
 @media (min-width: 851px) {

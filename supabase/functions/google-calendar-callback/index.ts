@@ -99,7 +99,7 @@ Deno.serve(async (request) => {
 
     let refreshToken = clean(tokens.refresh_token);
     if (!refreshToken) {
-      if (!existingConnection?.refresh_token_ciphertext) {
+      if (state.requireFreshToken || !existingConnection?.refresh_token_ciphertext) {
         throw new HttpError(400, "Google 未回傳長期授權，請移除舊授權後重新連結。", "refresh_token_missing");
       }
       return callbackPage(returnUrl, true, "原有 Google 行事曆授權仍然有效，可以返回系統繼續同步。");

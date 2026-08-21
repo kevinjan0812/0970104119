@@ -395,7 +395,15 @@ function load(data) {
   updateMetrics();
 }
 function flash(t='已儲存案件草稿'){let s=$('#status');s.textContent=t;s.classList.add('show');setTimeout(()=>s.classList.remove('show'),2400)}
-function setCaseStatus(status){const element=$('#caseStatus');if(element) element.textContent=status}
+function setCaseStatus(status){
+  const element=$('#caseStatus');
+  if(!element)return;
+  const saved=status==='已儲存';
+  element.textContent=status;
+  element.classList.toggle('is-saved',saved);
+  element.classList.toggle('is-dirty',!saved);
+  element.setAttribute('aria-label',`案件狀態：${status}`);
+}
 function syncEditCaseTitle(){const title=document.querySelector('.top h1');if(!title)return;const name=String(form.elements.case_name?.value||'').trim();if(window.__editingCaseNo||title.textContent.trim().startsWith('編輯案件'))title.textContent=name?`編輯案件｜${name}`:'編輯案件'}
 function save(){let d=collect();localStorage.setItem(K,JSON.stringify(d));markCaseSaved();flash()}
 function updateMetrics(){
@@ -454,6 +462,36 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
   });
+})();
+
+// 依實際內容高度計算三層固定標頭的位置；按鈕換行或視窗縮放時也不會重疊。
+(() => {
+  const top = document.querySelector('.main > .top');
+  const dashboard = document.querySelector('.main > .dashboard');
+  if (!top || !dashboard) return;
+
+  const outerHeight = element => {
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none') return 0;
+    return (
+      element.getBoundingClientRect().height +
+      (Number.parseFloat(style.marginTop) || 0) +
+      (Number.parseFloat(style.marginBottom) || 0)
+    );
+  };
+
+  const refreshCaseStickyHeader = () => {
+    const root = document.documentElement;
+    root.style.setProperty('--case-sticky-top-height', `${outerHeight(top)}px`);
+    root.style.setProperty('--case-sticky-dashboard-height', `${outerHeight(dashboard)}px`);
+  };
+
+  const observer = new ResizeObserver(refreshCaseStickyHeader);
+  observer.observe(top);
+  observer.observe(dashboard);
+  window.addEventListener('resize', refreshCaseStickyHeader, { passive: true });
+  window.addEventListener('load', refreshCaseStickyHeader, { once: true });
+  requestAnimationFrame(refreshCaseStickyHeader);
 })();
 
 ;
@@ -936,8 +974,16 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
         const inline = document.createElement('span');
         inline.className = 'people-inline';
         const label = document.createElement('span');
+        label.className = 'people-caption';
         label.textContent = '人數';
-        inline.append(label, peopleInput);
+        const control = document.createElement('span');
+        control.className = 'people-count-control';
+        const unit = document.createElement('span');
+        unit.className = 'people-unit';
+        unit.textContent = '人';
+        peopleInput.placeholder = '0';
+        control.append(peopleInput, unit);
+        inline.append(label, control);
         bandField.querySelector('.choice-row')?.append(inline);
       }
       peopleField.remove();
@@ -999,7 +1045,7 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
       const value = old.value;
       const row = document.createElement('div');
       row.className = 'choice-row';
-      row.innerHTML = '<label><input type="radio" name="ancestor_tablet" value="有">有</label><label><input type="radio" name="ancestor_tablet" value="無">無</label>';
+      row.innerHTML = '<label><input type="checkbox" name="ancestor_tablet" value="有">有</label><label><input type="checkbox" name="ancestor_tablet" value="無">無</label>';
       field.replaceChild(row, old);
       const selected = row.querySelector(`[value="${CSS.escape(value)}"]`);
       if (selected) selected.checked = true;
@@ -2148,12 +2194,12 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       <label class="filial-staff-option">
         <input name="filial_son_enabled" type="checkbox">
         孝男
-        <input class="filial-staff-short-input" name="filial_son_value" type="text" maxlength="2" aria-label="孝男欄位">
+        <input class="filial-staff-short-input" name="filial_son_value" type="text" maxlength="2" placeholder="0" aria-label="孝男欄位">
       </label>
       <label class="filial-staff-option">
         <input name="eldest_grandson_enabled" type="checkbox">
         長孫
-        <input class="filial-staff-short-input" name="eldest_grandson_value" type="text" maxlength="2" aria-label="長孫欄位">
+        <input class="filial-staff-short-input" name="eldest_grandson_value" type="text" maxlength="2" placeholder="0" aria-label="長孫欄位">
       </label>
     </div>
   `;
@@ -2514,7 +2560,23 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 ;
 
 document.getElementById('saveTop')?.remove();
-  document.querySelector('.top .actions button[onclick*="window.print"]')?.remove();
+document.querySelector('.top .actions button[onclick*="window.print"]')?.remove();
+
+// 案件狀態只在新增／編輯案件時顯示，其他主畫面不占用標題空間。
+(() => {
+  const title = document.querySelector('.top h1');
+  const status = document.getElementById('caseStatus');
+  if (!title || !status) return;
+  const refreshVisibility = () => {
+    status.hidden = !/^(新增案件|編輯案件)/.test(title.textContent.trim());
+  };
+  new MutationObserver(refreshVisibility).observe(title, {
+    childList: true,
+    characterData: true,
+    subtree: true
+  });
+  refreshVisibility();
+})();
 
 ;
 
@@ -2832,6 +2894,7 @@ document.getElementById('saveTop')?.remove();
 
     const direction = document.createElement('select');
     direction.name = 'ancestor_direction';
+    direction.className = 'ancestor-direction-select';
     direction.setAttribute('aria-label', '祖先牌位方位');
     direction.innerHTML = `
       <option value="">選擇</option>
@@ -3777,8 +3840,10 @@ document.getElementById('saveTop')?.remove();
     return String(value);
   };
 
-  const wordChoice = (selected, value, label = value) =>
-    `${String(selected || '') === value ? '☑' : '□'}${label}`;
+  const wordChoice = (selected, value, label = value) => {
+    const selectedValues = Array.isArray(selected) ? selected : [selected];
+    return `${selectedValues.map(String).includes(value) ? '☑' : '□'}${label}`;
+  };
 
   const buildWordTemplateData = record => {
     const fields = record?.fields || {};
@@ -3828,13 +3893,14 @@ document.getElementById('saveTop')?.remove();
     data.mourning_traditional = wordChoice(fields.mourning_dress, '傳統');
     data.mourning_black = wordChoice(fields.mourning_dress, '黑袍');
     data.band_traditional = `${wordChoice(fields.band, '國樂')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
-    data.band_western = `${wordChoice(fields.band, '西樂')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
+    data.band_western = `${wordChoice(fields.band, '西樂')}　${wordChoice(fields.band, '無')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
     data.hearse_chinese = wordChoice(fields.hearse, '中式');
-    data.hearse_western = wordChoice(fields.hearse, '西式');
+    data.hearse_western = `${wordChoice(fields.hearse, '西式')}　${wordChoice(fields.hearse, '無')}`;
     data.food_summary = [
       `${fields.food_restaurant ? '☑' : '□'}餐廳`,
       `${fields.food_box ? '☑' : '□'}餐盒`,
       `${fields.food_cash ? '☑' : '□'}紅包`,
+      `${fields.food_none ? '☑' : '□'}無`,
       value('food_note')
     ].filter(Boolean).join('　');
     data.offering_summary = `功德法事（供品 ${fields.offering_meat ? '☑' : '□'}葷　${fields.offering_veg ? '☑' : '□'}素　${fields.offering_own ? '☑' : '□'}自備）`;
@@ -4975,7 +5041,7 @@ document.querySelector('[name="ceremony_offerings"]')
     };
     const addDateSelection = values => {
       const row = document.createElement('tr');
-      row.innerHTML = '<td><input name="selection_honorific" placeholder="稱謂"></td><td><input name="selection_person_name" placeholder="姓名"></td><td class="birth-cell"><table class="life-mini-table"><tbody><tr><th>農</th><td><input name="selection_lunar_birth" placeholder="乙巳年農12/16"></td></tr><tr><th>國</th><td><input name="selection_solar_birth" placeholder="YYY/MM/DD"></td></tr></tbody></table></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>';
+      row.innerHTML = '<td><input name="selection_honorific" placeholder="稱謂"></td><td><input name="selection_person_name" placeholder="姓名"></td><td class="birth-cell"><table class="life-mini-table"><tbody><tr><th>農</th><td><input name="selection_lunar_birth"></td></tr><tr><th>國</th><td><input name="selection_solar_birth" placeholder="YYY/MM/DD"></td></tr></tbody></table></td><td><button type="button" class="btn remove" style="padding:6px 9px">刪除</button></td>';
       row.querySelector('[name="selection_honorific"]').value = values?.title || '';
       row.querySelector('[name="selection_person_name"]').value = values?.name || '';
       row.querySelector('[name="selection_lunar_birth"]').value = values?.lunarBirth || '';
@@ -4985,6 +5051,10 @@ document.querySelector('[name="ceremony_offerings"]')
       let isSynchronizing = false;
       const updateFromSolar = () => {
         if (isSynchronizing) return;
+        if (!solarInput.value.trim()) {
+          lunarInput.value = '';
+          return;
+        }
         const normalized = normalizeSolarInput(solarInput.value);
         const lunar = lunarInfoFromSolarDate(normalized);
         if (!normalized || !lunar) return;
@@ -5608,4 +5678,18 @@ document.querySelector('[name="ceremony_offerings"]')
     }
     syncScheduleToCalendar(pending.row, pending.button);
   });
+})();
+
+// 將原本表單底部的儲存按鈕移到固定標頭，並放在「匯出 Word」左側。
+(() => {
+  const actions = document.querySelector('.top .actions');
+  const footer = document.querySelector('#caseForm .footer-actions');
+  const saveButton = footer?.querySelector('button[type="submit"]');
+  if (!actions || !saveButton) return;
+
+  const wordExport = document.getElementById('currentCaseWordExport');
+  saveButton.id = 'saveTop';
+  saveButton.classList.add('top-case-save');
+  saveButton.setAttribute('form', 'caseForm');
+  actions.insertBefore(saveButton, wordExport || actions.firstElementChild);
 })();

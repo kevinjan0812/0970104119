@@ -356,15 +356,67 @@
 /* 移入禮儀安排的選項欄位，維持與其他表單一致的外框。 */
   #arrangement .venue-choice .choice-row { border: 1px solid #cbd5e1; border-radius: 7px; padding: 9px 11px; min-height: 48px; background: #fff; }
   #arrangement .band-choice .choice-row { display: flex; align-items: center; flex-wrap: nowrap; gap: 10px; }
-  #arrangement .band-choice .people-inline { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; white-space: nowrap; }
+  #arrangement .band-choice .people-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    white-space: nowrap;
+  }
+  #arrangement .band-choice .people-caption {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  #arrangement .band-choice .people-count-control {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 8px;
+    border: 1px solid #a9c9c4;
+    border-radius: 999px;
+    background: #f3faf8;
+    color: #47605d;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, .05);
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  #arrangement .band-choice .people-count-control:focus-within {
+    border-color: var(--brand);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(25, 122, 110, .13);
+  }
   #arrangement .band-choice .people-inline input[type="number"] {
     box-sizing: border-box;
-    width: 3.5em;
-    min-width: 3.5em;
-    min-height: 32px;
-    padding: 5px 4px 5px 6px;
+    width: 2.5ch !important;
+    min-width: 2.5ch !important;
+    max-width: 2.5ch !important;
+    height: 30px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #174f49;
+    font-weight: 800;
+    text-align: center;
+    box-shadow: none !important;
     appearance: textfield;
     -moz-appearance: textfield;
+  }
+  #arrangement .band-choice .people-inline input[type="number"]:focus {
+    border: 0;
+    box-shadow: none;
+  }
+  #arrangement .band-choice .people-inline input[type="number"]::placeholder {
+    color: #94a3b8;
+    font-weight: 600;
+    opacity: 1;
+  }
+  #arrangement .band-choice .people-unit {
+    margin-left: 2px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
   }
   #arrangement .band-choice .people-inline input[type="number"]::-webkit-inner-spin-button,
   #arrangement .band-choice .people-inline input[type="number"]::-webkit-outer-spin-button {
@@ -474,17 +526,17 @@
     column-gap: 16px;
     row-gap: 16px;
     align-items: end;
-    grid-template-columns: 180px 260px minmax(180px, 1fr);
+    grid-template-columns: 170px 320px minmax(180px, 1fr);
   }
   #arrangement .service-layout-grid .service-dress {
     grid-column: 1;
     grid-row: 1;
-    width: 180px;
+    width: 170px;
   }
   #arrangement .service-layout-grid .service-band {
     grid-column: 2;
     grid-row: 1;
-    width: 260px;
+    width: 320px;
     justify-self: start;
   }
   @media (max-width: 780px) {
@@ -529,6 +581,13 @@
     grid-row: 1;
     width: 180px;
   }
+  #arrangement .service-layout-grid .service-hearse .choice-row {
+    flex-wrap: nowrap;
+    gap: 10px;
+  }
+  #arrangement .service-layout-grid .service-hearse .choice-row > label {
+    white-space: nowrap;
+  }
   #arrangement .service-layout-grid .service-dress .choice-row,
   #arrangement .service-layout-grid .service-band .choice-row,
   #arrangement .service-layout-grid .service-hearse .choice-row,
@@ -546,6 +605,7 @@
   #arrangement .choice-row {
     box-sizing: border-box;
     min-height: 48px;
+    gap: 0 !important;
   }
   #arrangement .staff-options {
     width: 228px;
@@ -927,9 +987,9 @@
   #arrangement .service-layout-grid .service-food .choice-row {
     box-sizing: border-box;
     display: grid;
-    grid-template-columns: repeat(3, max-content) 100.86px;
+    grid-template-columns: repeat(4, max-content) 100.86px;
     align-items: center;
-    justify-content: center;
+    justify-content: start;
     column-gap: 22px;
     width: 100%;
     min-height: 52px !important;
@@ -955,9 +1015,35 @@
     width: 100.86px !important;
     min-width: 100.86px;
     max-width: 100.86px;
-    height: 42px !important;
-    min-height: 42px !important;
+    height: 34px !important;
+    min-height: 34px !important;
     margin: 0;
+  }
+
+  /* 料理備註與孝杖數值使用一致的無單位膠囊輸入樣式。 */
+  #arrangement .service-layout-grid .service-food [name="food_note"],
+  #arrangement .new-filial-staff-field .filial-staff-short-input {
+    padding: 0 10px !important;
+    border: 1px solid #a9c9c4 !important;
+    border-radius: 999px !important;
+    background: #f3faf8 !important;
+    color: #174f49;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, .05) !important;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  #arrangement .service-layout-grid .service-food [name="food_note"]:focus,
+  #arrangement .new-filial-staff-field .filial-staff-short-input:focus {
+    border-color: var(--brand) !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(25, 122, 110, .13) !important;
+  }
+  #arrangement .service-layout-grid .service-food [name="food_note"]::placeholder,
+  #arrangement .new-filial-staff-field .filial-staff-short-input::placeholder {
+    color: #94a3b8;
+    font-weight: 600;
+    opacity: 1;
   }
 
   /* 雙連巾與料理的外框使用完全相同的高度。 */
@@ -979,7 +1065,7 @@
     }
 
     #arrangement .service-layout-grid .service-food .choice-row {
-      grid-template-columns: repeat(3, max-content);
+      grid-template-columns: repeat(4, max-content);
       row-gap: 10px;
       height: auto !important;
       min-height: 52px !important;
@@ -1047,20 +1133,11 @@
   #basic .location-flow > .field {
     grid-column: auto !important;
   }
-  .aftercare-choice .ancestor-direction-label {
-    color: #334155;
-    font-size: 14px;
+  #venue .aftercare-choice .ancestor-direction-label {
+    color: #52716d;
+    font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
-  }
-  .aftercare-choice .choice-row select[name="ancestor_direction"] {
-    flex: 0 0 72px;
-    width: 72px;
-    min-width: 72px;
-    max-width: 72px;
-    min-height: 36px;
-    padding: 6px 30px 6px 10px;
-    margin-left: 0;
   }
 
   #venue .aftercare-choice .choice-row {
@@ -1068,15 +1145,46 @@
     height: 46px;
     min-height: 46px;
     padding: 4px 11px;
-    gap: 8px;
+    gap: 7px;
     flex-wrap: nowrap;
     border: 1px solid #cbd5e1;
     border-radius: 7px;
     background: #fff;
   }
-  #venue .aftercare-choice .choice-row select[name="ancestor_direction"] {
-    height: 36px;
-    min-height: 36px;
+  #venue .aftercare-choice .choice-row label {
+    gap: 5px;
+  }
+  #venue .aftercare-choice .choice-row .ancestor-direction-select {
+    box-sizing: border-box;
+    flex: 0 0 78px;
+    width: 78px;
+    min-width: 78px;
+    max-width: 78px;
+    height: 36px !important;
+    min-height: 36px !important;
+    margin: 0;
+    padding: 0 28px 0 12px;
+    appearance: none;
+    border: 1px solid #9dc9c2;
+    border-radius: 999px;
+    background-color: #f1faf8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%230f766e' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: right 10px center;
+    background-repeat: no-repeat;
+    color: #155e57;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(15, 118, 110, .08);
+  }
+  #venue .aftercare-choice .choice-row .ancestor-direction-select:hover {
+    border-color: #5fa99f;
+    background-color: #e8f7f4;
+  }
+  #venue .aftercare-choice .choice-row .ancestor-direction-select:focus {
+    outline: 3px solid rgba(20, 184, 166, .16);
+    outline-offset: 1px;
+    border-color: #0f766e;
   }
 
 #vendorsTable input[name="vendor_item"] {
@@ -1999,13 +2107,160 @@
   }
 }
 
+/* 手機版同樣固定精簡後的案件標題與分頁列。 */
+@media (max-width: 850px) {
+  .main {
+    padding-top: 0 !important;
+  }
+
+  .main > .top {
+    position: sticky;
+    top: 0;
+    z-index: 42;
+    margin-bottom: 0;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    background: var(--bg);
+    box-shadow: 0 2px 0 var(--bg);
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  .main > .section {
+    overflow: visible;
+    border-top: 0;
+  }
+
+  .main > .section > .tabs {
+    position: sticky;
+    top: calc(
+      var(--case-sticky-top-height, 146px) +
+      var(--case-sticky-dashboard-height, 0px)
+    );
+    z-index: 40;
+    border: 1px solid var(--line);
+    border-radius: 10px 10px 0 0;
+    background: #fbfcfd;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+}
+
+.top .top-case-save {
+  min-width: 118px;
+}
+
+#saveTop.top-case-save,
+#saveTop.top-case-save.is-saving,
+#saveTop.top-case-save.is-saved {
+  border-color: #b91c1c !important;
+  background: #dc2626 !important;
+  color: #fff !important;
+  box-shadow: 0 4px 0 #991b1b, 0 7px 14px rgba(153, 27, 27, .24) !important;
+}
+
+#saveTop.top-case-save:hover {
+  border-color: #991b1b !important;
+  background: #b91c1c !important;
+}
+
+#saveTop.top-case-save:active,
+#saveTop.top-case-save.is-pressing,
+#saveTop.top-case-save.is-saving {
+  box-shadow: 0 1px 0 #7f1d1d, 0 2px 5px rgba(127, 29, 29, .22) !important;
+}
+
+#saveTop.top-case-save.is-save-error {
+  border-color: #7f1d1d !important;
+  background: #991b1b !important;
+  color: #fff !important;
+}
+
+#caseForm .footer-actions:has(> #reset:only-child) {
+  display: flex;
+  justify-content: flex-end;
+}
+
+#caseForm .footer-actions:has(> #reset:only-child) > #reset {
+  width: auto;
+}
+
+/* 將案件儲存狀態移到案件名稱旁，取代原本的大型資訊卡。 */
+.dashboard:empty {
+  display: none !important;
+}
+
+.case-title-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.case-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 11px 5px 7px;
+  border: 1px solid #f0c98c;
+  border-radius: 999px;
+  background: #fff8e8;
+  color: #9a5b08;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.case-save-status::before {
+  content: "•";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f4b84b;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.case-save-status.is-saved {
+  border-color: #9fd7b2;
+  background: #effbf3;
+  color: #18733a;
+}
+
+.case-save-status.is-saved::before {
+  content: "✓";
+  background: #22a657;
+  font-size: 15px;
+}
+
+.case-save-status[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 520px) {
+  .case-title-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
 /* 手機與平板版：保留桌面配置，窄螢幕改為適合觸控的單欄介面。 */
   @media (max-width: 850px) {
     html,
     body {
       width: 100%;
       max-width: 100%;
-      overflow-x: hidden;
+      /* `hidden` 會把整頁變成捲動容器，導致手機瀏覽器的 sticky 失效。 */
+      overflow-x: clip;
+      overflow-y: visible;
     }
 
     .app {
@@ -3004,5 +3259,56 @@
     grid-column: 1 !important;
     width: 100% !important;
     max-width: none;
+  }
+}
+
+/* 編輯案件時固定標題、狀態卡片與分頁列，讓長表單捲動時仍可操作。 */
+@media (min-width: 851px) {
+  .main {
+    padding-top: 0;
+  }
+
+  .main > .top {
+    position: sticky;
+    top: 0;
+    z-index: 42;
+    margin-bottom: 0;
+    padding-top: 30px;
+    padding-bottom: 26px;
+    background: var(--bg);
+    box-shadow: 0 2px 0 var(--bg);
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  .main > .dashboard {
+    position: sticky;
+    top: var(--case-sticky-top-height, 78px);
+    z-index: 41;
+    margin-bottom: 0;
+    padding-bottom: 27px;
+    background: var(--bg);
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  .main > .section {
+    overflow: visible;
+    border-top: 0;
+  }
+
+  .main > .section > .tabs {
+    position: sticky;
+    top: calc(
+      var(--case-sticky-top-height, 78px) +
+      var(--case-sticky-dashboard-height, 132px)
+    );
+    z-index: 40;
+    border: 1px solid var(--line);
+    border-radius: 12px 12px 0 0;
+    background: #fbfcfd;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
+    backface-visibility: hidden;
+    transform: translateZ(0);
   }
 }

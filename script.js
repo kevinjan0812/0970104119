@@ -50,6 +50,7 @@ document.addEventListener('click', event => {
   const navigationTarget = target?.closest([
     '.sidebar .nav > button',
     '.case-archive-navigation button',
+    '.case-archive-navigation summary[data-month]',
     '.case-list-view .case-list-row button:not(.delete-case):not(.export-case):not(.export-word-case)',
     '.case-search-results [data-search-index]',
     '.case-archive-row .case-archive-actions button:not(.delete-case):not(.export-case):not(.export-word-case)'
@@ -4240,6 +4241,8 @@ document.querySelector('[name="ceremony_offerings"]')
   const closeArchiveView = () => {
     archiveView.classList.remove('active');
     archive.querySelectorAll('button').forEach(button => button.classList.remove('archive-active'));
+    archive.querySelectorAll('.case-archive-month-summary')
+      .forEach(summary => summary.classList.remove('archive-active'));
     document.querySelector('.top .actions')?.style.removeProperty('display');
   };
 
@@ -4365,12 +4368,19 @@ document.querySelector('[name="ceremony_offerings"]')
     });
 
     archive.querySelectorAll('button').forEach(button => button.classList.remove('archive-active'));
-    archive.querySelector(`[data-year="${CSS.escape(year)}"][data-month="${CSS.escape(month)}"]`)
+    archive.querySelectorAll('.case-archive-month-summary')
+      .forEach(summary => summary.classList.remove('archive-active'));
+    archive.querySelector(`.case-archive-month-summary[data-year="${CSS.escape(year)}"][data-month="${CSS.escape(month)}"]`)
       ?.classList.add('archive-active');
   };
 
   const renderArchive = () => {
-    const previouslyOpenYear = archive.querySelector('details[open]')?.dataset.year || '';
+    const previouslyOpenYear = archive.querySelector(':scope > details[open]')?.dataset.year || '';
+    const hadRenderedMonths = Boolean(archive.querySelector('.case-archive-month-group'));
+    const previouslyOpenMonths = new Set(
+      [...archive.querySelectorAll('.case-archive-month-group[open]')]
+        .map(monthDetails => `${monthDetails.dataset.year}-${monthDetails.dataset.month}`)
+    );
     const groups = new Map();
     records().forEach(record => {
       const { year, month } = dateParts(record.fields?.death_date);
@@ -4402,7 +4412,7 @@ document.querySelector('[name="ceremony_offerings"]')
       details.open = isMobile ? year === mobileOpenYear : yearIndex === 0;
       details.addEventListener('toggle', () => {
         if (!details.open || !window.matchMedia('(max-width: 850px)').matches) return;
-        archive.querySelectorAll('details[open]').forEach(openDetails => {
+        archive.querySelectorAll(':scope > details[open]').forEach(openDetails => {
           if (openDetails !== details) openDetails.open = false;
         });
       });
@@ -4420,21 +4430,26 @@ document.querySelector('[name="ceremony_offerings"]')
               { numeric: true }
             )
           );
-          const monthGroup = document.createElement('div');
+          const monthGroup = document.createElement('details');
           monthGroup.className = 'case-archive-month-group';
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'case-archive-month-button';
-          button.dataset.year = year;
-          button.dataset.month = month;
-          button.textContent = year === '未排日期'
+          monthGroup.dataset.year = year;
+          monthGroup.dataset.month = month;
+          monthGroup.open = hadRenderedMonths
+            ? previouslyOpenMonths.has(`${year}-${month}`)
+            : true;
+
+          const monthSummary = document.createElement('summary');
+          monthSummary.className = 'case-archive-month-summary';
+          monthSummary.dataset.year = year;
+          monthSummary.dataset.month = month;
+          monthSummary.textContent = year === '未排日期'
             ? `未排日期（${monthRecords.length}）`
             : `${Number(month)}月（${monthRecords.length}）`;
-          button.addEventListener('click', event => {
+          monthSummary.addEventListener('click', event => {
             event.stopPropagation();
-            showMonthPage(year, month);
+            if (!monthGroup.open) showMonthPage(year, month);
           });
-          monthGroup.append(button);
+          monthGroup.append(monthSummary);
 
           const caseList = document.createElement('div');
           caseList.className = 'case-archive-month-cases';

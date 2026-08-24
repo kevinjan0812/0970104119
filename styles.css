@@ -710,8 +710,12 @@
     -webkit-appearance: none;
     margin: 0;
   }
+  /* 日期欄與數量欄的輸入框實際邊緣固定保留 24px。 */
   #paperMoneyTable th:nth-child(1),
-  #paperMoneyTable td:nth-child(1) { width: 12rem; min-width: 12rem; }
+  #paperMoneyTable td:nth-child(1) {
+    width: calc(14ch + 21px);
+    min-width: calc(14ch + 21px);
+  }
   #paperMoneyTable th:nth-child(2),
   #paperMoneyTable td:nth-child(2) { width: 7rem; min-width: 7rem; }
   #paperMoneyTable th:last-child,
@@ -1585,11 +1589,11 @@
     padding: 2px 0 4px 12px;
     border-left: 1px solid rgba(255, 255, 255, .22);
   }
-  .case-archive-navigation details {
+  .case-archive-navigation > details {
     margin: 2px 0;
     color: rgba(255, 255, 255, .88);
   }
-  .case-archive-navigation summary {
+  .case-archive-navigation > details > summary {
     padding: 6px 8px;
     cursor: pointer;
     font-size: 14px;
@@ -1615,6 +1619,22 @@
   }
   .case-archive-month-group {
     margin: 1px 0 5px;
+    color: rgba(255, 255, 255, .78);
+  }
+  .case-archive-month-summary {
+    width: calc(100% - 8px);
+    margin: 1px 0 1px 8px;
+    padding: 6px 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    list-style-position: inside;
+  }
+  .case-archive-month-summary:hover,
+  .case-archive-month-summary.archive-active {
+    background: rgba(255, 255, 255, .13);
+    color: #fff;
   }
   .case-archive-month-cases {
     margin: 0 0 3px 14px;
@@ -2107,6 +2127,91 @@
   }
 }
 
+/* 手機版庫錢資料改為卡片排列，讓地點欄完整顯示且可直接編輯。 */
+@media (max-width: 560px) {
+  #ceremony .paper-money-row .table-wrap {
+    overflow-x: visible;
+  }
+
+  #ceremony #paperMoneyTable {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+  }
+
+  #ceremony #paperMoneyTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  #ceremony #paperMoneyTable tbody {
+    display: grid;
+    width: 100%;
+  }
+
+  #ceremony #paperMoneyTable tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(88px, .7fr) 64px;
+    gap: 12px 10px;
+    width: 100%;
+    padding: 12px;
+  }
+
+  #ceremony #paperMoneyTable tbody tr + tr {
+    border-top: 1px solid var(--line);
+  }
+
+  #ceremony #paperMoneyTable tbody td {
+    display: grid;
+    gap: 6px;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    border: 0;
+    background: transparent !important;
+  }
+
+  #ceremony #paperMoneyTable tbody td::before {
+    color: #3d5d58;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  #ceremony #paperMoneyTable tbody td:nth-child(1)::before { content: "日期"; }
+  #ceremony #paperMoneyTable tbody td:nth-child(2)::before { content: "數量"; }
+  #ceremony #paperMoneyTable tbody td:nth-child(3)::before { content: "地點"; }
+
+  #ceremony #paperMoneyTable tbody td:nth-child(3) {
+    grid-column: 1 / 3;
+  }
+
+  #ceremony #paperMoneyTable tbody td:nth-child(4) {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: end;
+  }
+
+  #ceremony #paperMoneyTable tbody input {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  #ceremony #paperMoneyTable tbody .remove {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 5px !important;
+  }
+}
+
 /* 手機版同樣固定精簡後的案件標題與分頁列。 */
 @media (max-width: 850px) {
   .main {
@@ -2362,13 +2467,13 @@
       overflow-y: auto;
     }
 
-    .case-archive-navigation details {
+    .case-archive-navigation > details {
       flex: 0 0 190px;
       min-width: 190px;
       margin: 0;
     }
 
-    .case-archive-navigation summary {
+    .case-archive-navigation > details > summary {
       padding: 8px;
       white-space: nowrap;
     }
@@ -2700,7 +2805,7 @@
       overflow: visible;
     }
 
-    .case-archive-navigation details {
+    .case-archive-navigation > details {
       width: auto;
       min-width: 0;
       margin: 0;

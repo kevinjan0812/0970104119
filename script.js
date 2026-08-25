@@ -425,6 +425,16 @@ function updateMetrics(){
   syncEditCaseTitle();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button,.pane').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('#'+b.dataset.tab).classList.add('active')});
+const caseTabs = document.querySelector('.tabs');
+caseTabs?.addEventListener('click', event => {
+  const tab = event.target instanceof Element
+    ? event.target.closest('button[data-tab]')
+    : null;
+  if (!tab || tab.classList.contains('active')) return;
+  // Reposition before the active pane changes height so short panes do not
+  // make the browser clamp the old scroll position after the layout changes.
+  window.scrollTo({ top: 0, left: window.scrollX, behavior: 'auto' });
+}, true);
 document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{addRow(b.dataset.add);updateMetrics()});
 form.addEventListener('input',()=>{markCaseDirty();updateMetrics()});
 form.addEventListener('change',()=>{markCaseDirty();syncLunarDates();updateMetrics()});

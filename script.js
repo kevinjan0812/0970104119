@@ -1222,6 +1222,14 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
 
     // 小燈數量排列在孝杖數量右側。
     const lamps = fieldFor(arrangement, 'small_lamps');
+    const lampsInput = lamps?.querySelector('[name="small_lamps"]');
+    if (lampsInput) {
+      lampsInput.type = 'number';
+      lampsInput.min = '0';
+      lampsInput.step = '1';
+      lampsInput.inputMode = 'numeric';
+      lampsInput.placeholder = '0';
+    }
     if (staffField && lamps && staffField.parentElement === lamps.parentElement) staffField.parentElement.insertBefore(lamps, staffField.nextElementSibling);
 
     // 後續關懷：祖先牌位保留有／無外框，祖塔改回可自由填寫。

@@ -2180,7 +2180,6 @@ html {
     width: 100%;
   }
 
-  #ceremony #schedules .schedule-entry-header,
   #ceremony #schedules .schedule-main-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(92px, 1.05fr) minmax(68px, .72fr);
@@ -2190,12 +2189,16 @@ html {
 
   #ceremony #schedules .schedule-entry-header {
     position: relative;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
     margin-top: 14px;
-    padding: 10px 10px 8px;
+    padding: 10px 10px 0;
     border: 1px solid var(--line);
     border-bottom: 0;
     border-radius: 10px 10px 0 0;
-    background: #eaf4f2;
+    background: #fff;
   }
 
   #ceremony #schedules .schedule-entry-header:first-child {
@@ -2220,22 +2223,49 @@ html {
     background: transparent;
   }
 
-  #ceremony #schedules .schedule-entry-header > th:nth-child(4),
+  #ceremony #schedules .schedule-entry-header > th:nth-child(-n+5) {
+    display: none;
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(-n+5) {
+    display: grid;
+    gap: 6px;
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(-n+5)::before {
+    color: #3d5d58;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(1)::before {
+    content: "項目";
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(2)::before {
+    content: "日期";
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(3)::before {
+    content: "時間";
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(4)::before {
+    content: "人數";
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(5)::before {
+    content: "地點";
+  }
+
   #ceremony #schedules .schedule-main-row > td:nth-child(4) {
     grid-column: 1;
     grid-row: 2;
   }
 
-  #ceremony #schedules .schedule-entry-header > th:nth-child(5) {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
   #ceremony #schedules .schedule-entry-header > th:nth-child(6) {
-    grid-column: 3;
-    grid-row: 2;
-    align-self: center;
-    justify-self: end;
+    flex: 0 0 auto;
   }
 
   #ceremony #schedules .schedule-main-row > td:nth-child(5) {

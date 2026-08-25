@@ -1224,10 +1224,11 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     const lamps = fieldFor(arrangement, 'small_lamps');
     const lampsInput = lamps?.querySelector('[name="small_lamps"]');
     if (lampsInput) {
-      lampsInput.type = 'number';
-      lampsInput.min = '0';
-      lampsInput.step = '1';
+      lampsInput.type = 'text';
+      lampsInput.removeAttribute('min');
+      lampsInput.removeAttribute('step');
       lampsInput.inputMode = 'numeric';
+      lampsInput.pattern = '\\d*';
       lampsInput.placeholder = '0';
     }
     if (staffField && lamps && staffField.parentElement === lamps.parentElement) staffField.parentElement.insertBefore(lamps, staffField.nextElementSibling);

@@ -2488,9 +2488,16 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       date.getDate() === day;
   };
 
+  const isYearOnlyDate = (input, value) => {
+    if (input.name !== 'selection_solar_birth') return false;
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{3})(?:[\/-]00[\/-]00|0000)$/);
+    return Boolean(match && Number(match[1]) >= 1);
+  };
+
   const validateDate = input => {
     const value = input.value.trim();
-    const valid = !value || isRealDate(value);
+    const valid = !value || isRealDate(value) || isYearOnlyDate(input, value);
     input.setCustomValidity(valid ? '' : '請輸入有效日期，格式必須是 YYY/MM/DD，例如 115/07/23');
     input.classList.toggle('date-invalid', !valid);
     return valid;
@@ -5022,6 +5029,20 @@ document.querySelector('[name="ceremony_offerings"]')
     // 擇日資料表的農、國曆雙向換算。農曆可輸入：乙巳年農12/16 或 2025年農12/16。
     const solarValueForDate = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const rocValueForDate = date => `${String(date.getFullYear() - 1911).padStart(3, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+    const yearOnlyInfoFromSolar = value => {
+      const raw = String(value || '').trim();
+      const match = raw.match(/^(\d{3})(?:[\/-]00[\/-]00|0000)$/);
+      const rocYear = Number(match?.[1]);
+      if (!match || rocYear < 1) return null;
+      const westernYear = rocYear + 1911;
+      const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+      const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+      const cycle = `${stems[(westernYear - 4) % 10]}${branches[(westernYear - 4) % 12]}`;
+      return {
+        solar: `${String(rocYear).padStart(3, '0')}/00/00`,
+        lunar: `${cycle}年農`
+      };
+    };
     const normalizeSolarInput = value => {
       const raw = String(value || '').trim().replaceAll('/', '-');
       const packed = raw.match(/^(\d{3}|\d{4})(\d{2})(\d{2})$/);
@@ -5082,6 +5103,12 @@ document.querySelector('[name="ceremony_offerings"]')
         if (isSynchronizing) return;
         if (!solarInput.value.trim()) {
           lunarInput.value = '';
+          return;
+        }
+        const yearOnly = yearOnlyInfoFromSolar(solarInput.value);
+        if (yearOnly) {
+          solarInput.value = yearOnly.solar;
+          lunarInput.value = yearOnly.lunar;
           return;
         }
         const normalized = normalizeSolarInput(solarInput.value);

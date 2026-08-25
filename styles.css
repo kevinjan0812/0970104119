@@ -3293,8 +3293,8 @@ html {
     #vendorsTable > tbody > tr > td:nth-child(1)::before { content: "項目"; }
     #vendorsTable > tbody > tr > td:nth-child(2)::before { content: "廠商名稱"; }
     #vendorsTable > tbody > tr > td:nth-child(3)::before { content: "備註"; }
-    #vendorsTable > tbody > tr > td:nth-child(4)::before { content: "已通知"; }
-    #vendorsTable > tbody > tr > td:nth-child(5)::before { content: "已確認"; }
+    #vendorsTable > tbody > tr > td:nth-child(4)::before { content: "已下單"; }
+    #vendorsTable > tbody > tr > td:nth-child(5)::before { content: "已對單"; }
     #vendorsTable > tbody > tr > td:nth-child(6)::before { content: "LINE 群組與下單"; }
 
     #vendorsTable > tbody > tr > td:nth-child(3),

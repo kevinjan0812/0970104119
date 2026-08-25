@@ -4899,18 +4899,26 @@ document.querySelector('[name="ceremony_offerings"]')
         };
       };
       const summaryDateValue = prefix => Object.values(summaryDateParts(prefix)).filter(Boolean).join('　');
-      const zodiacFromLunar = value => {
-        const branch = String(value || '').match(/[甲乙丙丁戊己庚辛壬癸]([子丑寅卯辰巳午未申酉戌亥])/)?.[1];
-        if (!branch) return '';
-        const zodiac = { 子: '鼠', 丑: '牛', 寅: '虎', 卯: '兔', 辰: '龍', 巳: '蛇', 午: '馬', 未: '羊', 申: '猴', 酉: '雞', 戌: '狗', 亥: '豬' };
-        return zodiac[branch] ? `肖${zodiac[branch]}` : '';
+      const exportLunarBirth = value => {
+        const text = String(value || '').trim();
+        return text.match(/(閏?\d{1,2}\/\d{1,2})$/)?.[1] || text;
       };
+      const exportSolarBirth = value => {
+        const text = String(value || '').trim();
+        const match = text.match(/^(\d{1,4})[\/-](\d{1,2})[\/-](\d{1,2})$/);
+        if (!match) return text;
+        const sourceYear = Number(match[1]);
+        const rocYear = sourceYear > 1911 ? sourceYear - 1911 : sourceYear;
+        return `${rocYear}/${String(Number(match[2])).padStart(2, '0')}/${String(Number(match[3])).padStart(2, '0')}`;
+      };
+      const fateFromLunar = value =>
+        String(value || '').match(/[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]/)?.[0] || '';
       const familyRows = [...sourceTable.tBodies[0].rows].map(row => ({
         honorific: String(row.querySelector('[name="selection_honorific"]')?.value || '').trim(),
         name: String(row.querySelector('[name="selection_person_name"]')?.value || '').trim(),
-        lunarBirth: String(row.querySelector('[name="selection_lunar_birth"]')?.value || '').trim(),
-        solarBirth: String(row.querySelector('[name="selection_solar_birth"]')?.value || '').trim(),
-        fate: zodiacFromLunar(row.querySelector('[name="selection_lunar_birth"]')?.value)
+        lunarBirth: exportLunarBirth(row.querySelector('[name="selection_lunar_birth"]')?.value),
+        solarBirth: exportSolarBirth(row.querySelector('[name="selection_solar_birth"]')?.value),
+        fate: fateFromLunar(row.querySelector('[name="selection_lunar_birth"]')?.value)
       })).filter(row => Object.values(row).some(Boolean));
 
       const Docxtemplater = window.docxtemplater || window.Docxtemplater;

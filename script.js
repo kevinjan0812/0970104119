@@ -4462,7 +4462,7 @@ document.querySelector('[name="ceremony_offerings"]')
           monthGroup.dataset.month = month;
           monthGroup.open = hadRenderedMonths
             ? previouslyOpenMonths.has(`${year}-${month}`)
-            : true;
+            : false;
 
           const monthSummary = document.createElement('summary');
           monthSummary.className = 'case-archive-month-summary';

@@ -4932,7 +4932,13 @@ document.querySelector('[name="ceremony_offerings"]')
             death_branch: death.branch || death.time
           };
           for (let index = 0; index < 30; index += 1) {
-            const slot = String(index + 1).padStart(2, '0');
+            // The Word template uses odd-numbered slots down the left column
+            // and even-numbered slots down the right column. Fill all 15
+            // left-side rows first, then continue at the top of the right side.
+            const slotNumber = index < 15
+              ? (index * 2) + 1
+              : ((index - 15) * 2) + 2;
+            const slot = String(slotNumber).padStart(2, '0');
             const family = familyRows[index] || {};
             templateData[`family_${slot}_honorific`] = family.honorific || '';
             templateData[`family_${slot}_name`] = family.name || '';

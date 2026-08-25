@@ -1127,6 +1127,25 @@ html {
     border-color: #a61f1f;
   }
 
+  /* 所有刪除操作統一使用紅底白字，避免與一般功能按鈕混淆。 */
+  .btn.remove,
+  .btn.delete-case,
+  .cloud-member-remove,
+  #case-attachment-list .attachment-delete {
+    border-color: #c62828 !important;
+    background: #c62828 !important;
+    color: #fff !important;
+    font-weight: 800;
+  }
+  .btn.remove:hover,
+  .btn.delete-case:hover,
+  .cloud-member-remove:hover,
+  #case-attachment-list .attachment-delete:hover {
+    border-color: #a61f1f !important;
+    background: #a61f1f !important;
+    color: #fff !important;
+  }
+
 #basic .case-type-equal-field,
   #basic .case-type-equal-field.field.wide {
     grid-column: span 4;
@@ -1436,38 +1455,27 @@ html {
   }
   #schedules .schedule-entry-header .schedule-header-action-cell .remove {
     box-sizing: border-box;
-    position: relative;
-    width: 24px;
-    min-width: 24px;
-    height: 24px;
-    min-height: 24px;
-    padding: 0 !important;
+    width: auto;
+    min-width: 58px;
+    height: 38px;
+    min-height: 38px;
+    padding: 7px 12px !important;
     margin-left: auto;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    font-size: 0;
+    border: 1px solid #c62828;
+    border-radius: 8px;
+    background: #c62828;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
   }
   #schedules .schedule-entry-header .schedule-header-action-cell .remove:hover {
-    background: #fdeaea;
+    border-color: #a61f1f;
+    background: #a61f1f;
+    color: #fff;
   }
   #schedules .schedule-entry-header .schedule-header-action-cell .remove::before,
   #schedules .schedule-entry-header .schedule-header-action-cell .remove::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 14px;
-    height: 4px;
-    border-radius: 999px;
-    background: #e53935;
-    box-shadow: 0 1px 0 rgba(132, 24, 24, .18);
-  }
-  #schedules .schedule-entry-header .schedule-header-action-cell .remove::before {
-    transform: translate(-50%, -50%) rotate(45deg);
-  }
-  #schedules .schedule-entry-header .schedule-header-action-cell .remove::after {
-    transform: translate(-50%, -50%) rotate(-45deg);
+    content: none;
   }
   #schedules .schedule-remark-row > td {
     padding: 0 12px 12px;
@@ -2228,10 +2236,11 @@ html {
   }
 
   #ceremony #schedules .schedule-entry-header .schedule-header-remove {
-    width: 36px;
-    min-width: 36px;
+    width: 100%;
+    min-width: 0;
     height: 36px !important;
     min-height: 36px !important;
+    padding: 6px 8px !important;
     margin: 0;
   }
 

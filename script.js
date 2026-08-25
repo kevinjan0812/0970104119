@@ -159,7 +159,7 @@ function addRow(table, values = {}) {
     scheduleHeader.innerHTML = '<th>項目</th><th>日期</th><th>時間</th><th>人數</th><th>地點</th><th class="schedule-header-action-cell"></th>';
     scheduleHeader.lastElementChild.innerHTML = remove();
     const scheduleDeleteButton = scheduleHeader.querySelector('.remove');
-    scheduleDeleteButton.textContent = '';
+    scheduleDeleteButton.textContent = '刪除';
     scheduleDeleteButton.classList.add('schedule-header-remove');
     scheduleDeleteButton.setAttribute('aria-label', '刪除此筆功德法事');
     scheduleDeleteButton.title = '刪除此筆功德法事';

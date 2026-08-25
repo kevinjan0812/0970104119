@@ -1477,6 +1477,22 @@ html {
   #schedules .schedule-entry-header .schedule-header-action-cell .remove::after {
     content: none;
   }
+  @media (min-width: 851px) {
+    #schedules .schedule-entry-header,
+    #schedules .schedule-entry-header > th {
+      height: 40.8px !important;
+      min-height: 40.8px;
+    }
+    #schedules .schedule-entry-header > th {
+      padding: 0 12px;
+      border-bottom: 0;
+      box-shadow: inset 0 -1px var(--line);
+    }
+    #schedules .schedule-entry-header .schedule-header-action-cell .remove {
+      height: 40.8px !important;
+      min-height: 40.8px !important;
+    }
+  }
   #schedules .schedule-remark-row > td {
     padding: 0 12px 12px;
     text-align: left;

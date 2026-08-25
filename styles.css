@@ -2138,6 +2138,139 @@ html {
   }
 }
 
+/* 手機版功德法事排程：避免固定寬度表格把地點與操作按鈕裁切。 */
+@media (max-width: 560px) {
+  #ceremony .ritual-schedule-row .table-wrap {
+    overflow-x: visible;
+  }
+
+  #ceremony #schedules {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+  }
+
+  #ceremony #schedules tbody {
+    display: block;
+    width: 100%;
+  }
+
+  #ceremony #schedules .schedule-entry-header,
+  #ceremony #schedules .schedule-main-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 1.05fr) minmax(68px, .72fr);
+    gap: 10px 8px;
+    width: 100%;
+  }
+
+  #ceremony #schedules .schedule-entry-header {
+    position: relative;
+    margin-top: 14px;
+    padding: 10px 10px 8px;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 10px 10px 0 0;
+    background: #eaf4f2;
+  }
+
+  #ceremony #schedules .schedule-entry-header:first-child {
+    margin-top: 0;
+  }
+
+  #ceremony #schedules .schedule-main-row {
+    padding: 0 10px 10px;
+    border-right: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    background: #fff;
+  }
+
+  #ceremony #schedules .schedule-entry-header > th,
+  #ceremony #schedules .schedule-main-row > td {
+    display: block;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    border: 0;
+    background: transparent;
+  }
+
+  #ceremony #schedules .schedule-entry-header > th:nth-child(4),
+  #ceremony #schedules .schedule-main-row > td:nth-child(4) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #ceremony #schedules .schedule-entry-header > th:nth-child(5) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  #ceremony #schedules .schedule-entry-header > th:nth-child(6) {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: center;
+    justify-self: end;
+  }
+
+  #ceremony #schedules .schedule-main-row > td:nth-child(5) {
+    grid-column: 2 / 4;
+    grid-row: 2;
+  }
+
+  #ceremony #schedules .schedule-main-row > .schedule-action-cell {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  #ceremony #schedules .schedule-entry-header .schedule-header-remove {
+    width: 36px;
+    min-width: 36px;
+    height: 36px !important;
+    min-height: 36px !important;
+    margin: 0;
+  }
+
+  #ceremony #schedules .schedule-main-row input,
+  #ceremony #schedules .schedule-google-calendar,
+  #ceremony #schedules .schedule-google-calendar-link {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  #ceremony #schedules .schedule-remark-row {
+    display: block;
+    width: 100%;
+  }
+
+  #ceremony #schedules .schedule-remark-row > td:first-child {
+    display: block;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 10px 10px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    border-radius: 0 0 10px 10px;
+    background: #fff;
+  }
+
+  #ceremony #schedules textarea[name="schedule_remark"] {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  #ceremony #schedules .row-drag-cell {
+    display: none !important;
+  }
+}
+
 /* 手機版庫錢資料改為卡片排列，讓地點欄完整顯示且可直接編輯。 */
 @media (max-width: 560px) {
   #ceremony .paper-money-row .table-wrap {

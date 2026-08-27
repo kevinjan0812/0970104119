@@ -4356,6 +4356,10 @@ document.querySelector('[name="ceremony_offerings"]')
       deleteButton.className = 'btn delete-case';
       deleteButton.textContent = '刪除';
       deleteButton.addEventListener('click', () => {
+        if (window.funeralCloud?.readOnly) {
+          window.alert('此帳號僅可瀏覽，不能刪除案件。');
+          return;
+        }
         const caseNo = String(record?.fields?.case_no || '').trim();
         const caseName = record?.fields?.case_name || '未命名案件';
         if (!window.confirm(`確定要刪除案件「${caseNo} ${caseName}」嗎？`)) return;
@@ -5668,6 +5672,11 @@ document.querySelector('[name="ceremony_offerings"]')
   };
 
   const syncScheduleToCalendar = async (row, button, popup = null) => {
+    if (window.funeralCloud?.readOnly) {
+      popup?.close();
+      window.alert('此帳號僅可瀏覽，不能同步 Google 行事曆。');
+      return;
+    }
     if (!validateScheduleForCalendar(row)) {
       popup?.close();
       return;

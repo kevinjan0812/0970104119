@@ -2083,7 +2083,8 @@ html {
     background: #d92d20 !important;
     color: #fff !important;
   }
-  body[data-cloud-role="staff"] .case-list-view .delete-case {
+  body[data-cloud-role="staff"] .case-list-view .delete-case,
+  body[data-cloud-role="staff"] .case-archive-row .delete-case {
     display: none !important;
   }
   .cloud-read-only-banner {

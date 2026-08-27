@@ -1222,14 +1222,24 @@
     '#addDateSelection',
     '#date-selection-sheet input:not([readonly])',
     '#date-selection-sheet select',
-    '#date-selection-sheet .remove'
+    '#date-selection-sheet .remove',
+    '.case-archive-row .delete-case',
+    '.schedule-google-calendar',
+    '.schedule-google-calendar-link'
   ].join(',');
 
   const applyReadOnlyUi = () => {
     document.body.dataset.cloudReadOnly = activeReadOnly ? 'true' : 'false';
     if (!activeReadOnly) {
       document.querySelectorAll('[data-cloud-read-only-disabled="true"]').forEach(control => {
-        control.disabled = false;
+        if (control instanceof HTMLAnchorElement) {
+          const href = control.dataset.cloudReadOnlyHref || '';
+          if (href) control.setAttribute('href', href);
+          control.removeAttribute('aria-disabled');
+          delete control.dataset.cloudReadOnlyHref;
+        } else if ('disabled' in control) {
+          control.disabled = false;
+        }
         delete control.dataset.cloudReadOnlyDisabled;
       });
       document.querySelector('.cloud-read-only-banner')?.remove();
@@ -1237,6 +1247,15 @@
     }
 
     document.querySelectorAll(readOnlyControlSelector).forEach(control => {
+      if (control instanceof HTMLAnchorElement) {
+        if (!control.dataset.cloudReadOnlyDisabled) {
+          control.dataset.cloudReadOnlyDisabled = 'true';
+          control.dataset.cloudReadOnlyHref = control.getAttribute('href') || '';
+          control.removeAttribute('href');
+          control.setAttribute('aria-disabled', 'true');
+        }
+        return;
+      }
       if (!(control instanceof HTMLButtonElement
         || control instanceof HTMLInputElement
         || control instanceof HTMLSelectElement
@@ -1262,7 +1281,7 @@
     const role = document.querySelector('.cloud-account-role');
     if (role) role.textContent = roleLabels[activeRole] || activeRole;
     if (activeRole === 'staff') {
-      document.querySelectorAll('.case-list-view .delete-case').forEach(button => {
+      document.querySelectorAll('.case-list-view .delete-case, .case-archive-row .delete-case').forEach(button => {
         button.hidden = true;
       });
     } else {
@@ -1289,7 +1308,7 @@
     }
     if (activeRole !== 'staff') return;
     const deleteButton = event.target instanceof Element
-      ? event.target.closest('.case-list-view .delete-case')
+      ? event.target.closest('.case-list-view .delete-case, .case-archive-row .delete-case')
       : null;
     if (!deleteButton) return;
     event.preventDefault();
@@ -1299,7 +1318,7 @@
 
   const caseListObserver = new MutationObserver(() => {
     if (activeRole === 'staff') {
-      document.querySelectorAll('.case-list-view .delete-case').forEach(button => {
+      document.querySelectorAll('.case-list-view .delete-case, .case-archive-row .delete-case').forEach(button => {
         button.hidden = true;
       });
     }
@@ -1440,7 +1459,14 @@
     client: cloud,
     sync: loadAndMergeCloud,
     deleteCase: deleteCloudCase,
-    googleCalendar: payload => invokeGoogleCalendar({ ...payload, company_id: activeCompanyId }),
+    googleCalendar: payload => {
+      if (activeReadOnly) {
+        const error = new Error('此帳號僅可瀏覽，不能同步 Google 行事曆。');
+        error.code = 'read_only';
+        return Promise.reject(error);
+      }
+      return invokeGoogleCalendar({ ...payload, company_id: activeCompanyId });
+    },
     sendLineOrder: async payload => {
       const { data, error } = await cloud.functions.invoke('line-order', { body: payload });
       if (error) {

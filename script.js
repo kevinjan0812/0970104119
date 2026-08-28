@@ -2317,6 +2317,24 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     }, 3000);
   };
 
+  const validateRequiredCaseFields = () => {
+    const requiredFields = [
+      [caseForm.elements.case_name, '案名'],
+      [caseForm.elements.case_no, '案件編號']
+    ];
+    const missingFields = requiredFields.filter(([control]) =>
+      !String(control?.value || '').trim()
+    );
+    if (!missingFields.length) return true;
+
+    document.querySelector('.tabs button[data-tab="basic"]')?.click();
+    const [firstMissing] = missingFields[0];
+    firstMissing?.focus();
+    firstMissing?.reportValidity();
+    showSaveStatus(`請先填寫${missingFields.map(([, label]) => label).join('與')}`, true);
+    return false;
+  };
+
   const saveCase = async (triggerButton = formSaveButton) => {
     if (savingCase) return false;
     showSaveButtonFeedback(triggerButton, 'saving');
@@ -2325,8 +2343,9 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       showSaveButtonFeedback(triggerButton, 'error');
       return false;
     }
-    if (!caseForm.reportValidity()) {
-      showSaveStatus('請先填寫案件編號與案名', true);
+    // 畫面只將案名與案件編號標示為必填，所以不應讓其他非必填欄位的
+    // 瀏覽器驗證狀態阻擋整筆案件儲存。日期仍由上方的專用驗證處理。
+    if (!validateRequiredCaseFields()) {
       showSaveButtonFeedback(triggerButton, 'error');
       return false;
     }

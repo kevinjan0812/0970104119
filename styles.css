@@ -1451,16 +1451,65 @@ html {
     padding: 10px 12px;
   }
   #schedules .schedule-entry-header .schedule-header-action-cell {
+    padding-right: 6px;
+    padding-left: 6px;
     text-align: right;
+  }
+  #schedules .schedule-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  #schedules .schedule-auto-order-choice {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 6px;
+    border: 1px solid #91b9b2;
+    border-radius: 8px;
+    background: #fff;
+    color: #245f57;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  #schedules tbody input.schedule-auto-order-checkbox {
+    flex: 0 0 16px;
+    width: 16px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    margin: 0 !important;
+    accent-color: #1677d2;
+    cursor: pointer;
+  }
+  #schedules .schedule-auto-order-choice.is-ordered {
+    border-color: #c62828;
+    background: #c62828;
+    color: #fff;
+    cursor: not-allowed;
+  }
+  #schedules .schedule-auto-order-choice.is-ordered .schedule-auto-order-checkbox {
+    accent-color: #fff;
+    cursor: not-allowed;
+  }
+  #schedules .schedule-entry-header.schedule-order-complete th {
+    background: #fff0f0;
   }
   #schedules .schedule-entry-header .schedule-header-action-cell .remove {
     box-sizing: border-box;
     width: auto;
-    min-width: 58px;
+    min-width: 54px;
     height: 38px;
     min-height: 38px;
-    padding: 7px 12px !important;
-    margin-left: auto;
+    padding: 7px 8px !important;
+    margin-left: 0;
     border: 1px solid #c62828;
     border-radius: 8px;
     background: #c62828;
@@ -1487,6 +1536,10 @@ html {
       padding: 0 12px;
       border-bottom: 0;
       box-shadow: inset 0 -1px var(--line);
+    }
+    #schedules .schedule-entry-header > .schedule-header-action-cell {
+      padding-right: 6px;
+      padding-left: 6px;
     }
     #schedules .schedule-entry-header .schedule-header-action-cell .remove {
       height: 40.8px !important;
@@ -2163,6 +2216,17 @@ html {
   }
 }
 
+/* 勾選框／單選框緊接選項文字；選項彼此的間距仍由 choice-row 控制。 */
+#caseForm label:has(> input[type="checkbox"]),
+#caseForm label:has(> input[type="radio"]) {
+  column-gap: 0 !important;
+}
+
+#caseForm label > input[type="checkbox"],
+#caseForm label > input[type="radio"] {
+  margin: 0 !important;
+}
+
 /* 手機版功德法事排程：避免固定寬度表格把地點與操作按鈕裁切。 */
 @media (max-width: 560px) {
   #ceremony .ritual-schedule-row .table-wrap {
@@ -2283,12 +2347,17 @@ html {
   }
 
   #ceremony #schedules .schedule-entry-header .schedule-header-remove {
-    width: 100%;
+    width: auto;
     min-width: 0;
     height: 36px !important;
     min-height: 36px !important;
     padding: 6px 8px !important;
     margin: 0;
+  }
+
+  #ceremony #schedules .schedule-header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   #ceremony #schedules .schedule-main-row input,

@@ -157,7 +157,8 @@ function addRow(table, values = {}) {
     const scheduleHeader = document.createElement('tr');
     scheduleHeader.className = 'schedule-entry-header';
     scheduleHeader.innerHTML = '<th>項目</th><th>日期</th><th>時間</th><th>人數</th><th>地點</th><th class="schedule-header-action-cell"></th>';
-    scheduleHeader.lastElementChild.innerHTML = remove();
+    const autoOrderSelected = values.autoOrderSelected === true || values.auto_order_selected === true;
+    scheduleHeader.lastElementChild.innerHTML = `<div class="schedule-header-actions"><label class="schedule-auto-order-choice"><input class="schedule-auto-order-checkbox" type="checkbox" ${autoOrderSelected ? 'checked' : ''} aria-label="納入自動下單"><span>自動下單</span></label>${remove()}</div>`;
     const scheduleDeleteButton = scheduleHeader.querySelector('.remove');
     scheduleDeleteButton.textContent = '刪除';
     scheduleDeleteButton.classList.add('schedule-header-remove');
@@ -261,6 +262,13 @@ function scheduleRemarkControl(row) {
       : null);
   return remarkRow?.querySelector('[name="schedule_remark"]') || null;
 }
+function scheduleAutoOrderControl(row) {
+  const headerRow = row?._scheduleHeaderRow
+    || (row?.previousElementSibling?.classList.contains('schedule-entry-header')
+      ? row.previousElementSibling
+      : null);
+  return headerRow?.querySelector('.schedule-auto-order-checkbox') || null;
+}
 function rows(table,fields){
   const body=$('#'+table+' tbody');
   if(!body)return [];
@@ -271,6 +279,7 @@ function rows(table,fields){
     people:r.querySelector('[name="schedule_people"]')?.value||'',
     note:r.querySelector('[name="schedule_note"]')?.value||'',
     remark:scheduleRemarkControl(r)?.value||'',
+    autoOrderSelected:Boolean(scheduleAutoOrderControl(r)?.checked),
     googleCalendarEventId:r.dataset.googleCalendarEventId||'',
     googleCalendarSyncId:r.dataset.googleCalendarSyncId||'',
     googleCalendarSyncedSignature:r.dataset.googleCalendarSyncedSignature||''
@@ -1205,7 +1214,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       const current = String(photoInput.value || '').split(',').map(value => value.trim()).filter(Boolean);
       const row = document.createElement('div');
       row.className = 'choice-row';
-      row.innerHTML = '<label><input type="checkbox" name="photo_style" value="15吋">15 吋</label><label><input type="checkbox" name="photo_style" value="大圖">大圖</label>';
+      row.innerHTML = '<label><input type="checkbox" name="photo_style" value="15吋">15 吋</label><label><input type="checkbox" name="photo_style" value="大圖">大圖</label><label><input type="checkbox" name="photo_style" value="無">無</label>';
       photoField.replaceChild(row, photoInput);
       row.querySelectorAll('input').forEach(input => input.checked = current.includes(input.value));
     }
@@ -2221,13 +2230,17 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
         長孫
         <input class="filial-staff-short-input" name="eldest_grandson_value" type="text" maxlength="2" placeholder="0" aria-label="長孫欄位">
       </label>
+      <label class="filial-staff-option">
+        <input name="filial_staff_none" type="checkbox">
+        無
+      </label>
     </div>
   `;
   largeLamp.insertAdjacentElement('afterend', field);
 
   const savedDraft = JSON.parse(localStorage.getItem('funeral-case-draft-v1') || 'null');
   if (savedDraft?.fields) {
-    ['filial_son_enabled', 'eldest_grandson_enabled'].forEach(name => {
+    ['filial_son_enabled', 'eldest_grandson_enabled', 'filial_staff_none'].forEach(name => {
       field.querySelector(`[name="${name}"]`).checked = Boolean(savedDraft.fields[name]);
     });
     ['filial_son_value', 'eldest_grandson_value'].forEach(name => {
@@ -3937,7 +3950,7 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
     data.coffin_rite_summary = `${wordChoice(fields.coffin_rite, '有')}　${wordChoice(fields.coffin_rite, '無')}`;
     data.coffin_tap_summary = `${wordChoice(fields.coffin_tap, '有')}　${wordChoice(fields.coffin_tap, '無')}`;
     data.mourning_traditional = wordChoice(fields.mourning_dress, '傳統');
-    data.mourning_black = wordChoice(fields.mourning_dress, '黑袍');
+    data.mourning_black = `${wordChoice(fields.mourning_dress, '黑袍')}　${wordChoice(fields.mourning_dress, '無')}`;
     data.band_traditional = `${wordChoice(fields.band, '國樂')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
     data.band_western = `${wordChoice(fields.band, '西樂')}　${wordChoice(fields.band, '無')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
     data.hearse_chinese = wordChoice(fields.hearse, '中式');
@@ -3964,7 +3977,11 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
     ].join('　');
     const filialSonValue = value('filial_son_value') || value('staff_male');
     const eldestGrandsonValue = value('eldest_grandson_value') || value('staff_eldest_grandson');
-    data.staff_summary = `男：${filialSonValue}\n長孫：${eldestGrandsonValue}`;
+    data.staff_summary = [
+      `男：${filialSonValue}`,
+      `長孫：${eldestGrandsonValue}`,
+      fields.filial_staff_none ? '無' : ''
+    ].filter(Boolean).join('\n');
     const dateWithLunar = (solarDate, manualLunar = '') => {
       const solar = wordValue(solarDate).trim();
       const lunar = wordValue(manualLunar).trim() || (solar ? lunarText(solar.replaceAll('/', '-')) : '');
@@ -5231,7 +5248,7 @@ document.querySelector('[name="ceremony_offerings"]')
     };
   }
 
-  // 每一批尚未送出的法事安排只會送一次；新增一列後會再次開放下單。
+  // 只有勾選的法事安排才會送出；送出成功後鎖定該列，避免重複下單。
   const scheduleTable = document.getElementById('schedules');
   const scheduleBody = scheduleTable?.tBodies?.[0];
   const orderHeading = scheduleTable?.closest('.block')?.querySelector('.fieldset-title');
@@ -5243,7 +5260,7 @@ document.querySelector('[name="ceremony_offerings"]')
     button.type = 'button';
     button.id = 'lineAutoOrder';
     button.textContent = '自動下單';
-    button.title = '透過 LINE 官方帳號傳送到所選的單一群組';
+    button.title = '透過 LINE 官方帳號傳送已勾選的法事排程到所選群組';
     const controls = document.createElement('div');
     controls.className = 'line-order-controls';
     const groupSelect = document.createElement('select');
@@ -5274,13 +5291,50 @@ document.querySelector('[name="ceremony_offerings"]')
     };
     window.addEventListener('funeral-cloud-ready', loadGroups);
     setTimeout(loadGroups, 700);
-    const isFilled = row => [...row.querySelectorAll('input,select,textarea')].some(control => String(control.value || '').trim());
+    const isFilled = row => [
+      'schedule_item', 'schedule_date', 'schedule_time', 'schedule_people', 'schedule_note'
+    ].some(name => String(row.querySelector(`[name="${name}"]`)?.value || '').trim())
+      || String(scheduleRemarkControl(row)?.value || '').trim() !== '';
     const scheduleRows = () => [...(scheduleBody?.querySelectorAll('tr.schedule-main-row') || [])];
     const refresh = () => {
-      const hasPending = scheduleRows().some(row => isFilled(row) && row.dataset.lineOrdered !== 'true');
-      if (hasPending) { button.disabled = false; button.classList.remove('line-order-complete'); button.textContent = '自動下單'; }
-      else if (scheduleRows().some(row => row.dataset.lineOrdered === 'true')) { button.disabled = true; button.classList.add('line-order-complete'); button.textContent = '已下單'; }
-      else { button.disabled = false; button.classList.remove('line-order-complete'); button.textContent = '自動下單'; }
+      const rows = scheduleRows();
+      rows.forEach(row => {
+        const ordered = row.dataset.lineOrdered === 'true';
+        const checkbox = scheduleAutoOrderControl(row);
+        const headerRow = row._scheduleHeaderRow || row.previousElementSibling;
+        const remarkRow = row._scheduleRemarkRow || row.nextElementSibling;
+        if (checkbox) checkbox.disabled = ordered;
+        const choice = checkbox?.closest('.schedule-auto-order-choice');
+        choice?.classList.toggle('is-ordered', ordered);
+        const choiceText = choice?.querySelector('span');
+        const nextChoiceText = ordered ? '已下單' : '自動下單';
+        if (choiceText && choiceText.textContent !== nextChoiceText) {
+          choiceText.textContent = nextChoiceText;
+        }
+        row.classList.toggle('schedule-order-complete', ordered);
+        headerRow?.classList.toggle('schedule-order-complete', ordered);
+        remarkRow?.classList.toggle('schedule-order-complete', ordered);
+      });
+      const pendingRows = rows.filter(row =>
+        isFilled(row)
+        && scheduleAutoOrderControl(row)?.checked
+        && row.dataset.lineOrdered !== 'true'
+      );
+      const hasOrdered = rows.some(row => row.dataset.lineOrdered === 'true');
+      const hasUnorderedContent = rows.some(row => isFilled(row) && row.dataset.lineOrdered !== 'true');
+      if (pendingRows.length) {
+        button.disabled = false;
+        button.classList.remove('line-order-complete');
+        button.textContent = '自動下單';
+      } else if (hasOrdered && !hasUnorderedContent) {
+        button.disabled = true;
+        button.classList.add('line-order-complete');
+        button.textContent = '已下單';
+      } else {
+        button.disabled = true;
+        button.classList.remove('line-order-complete');
+        button.textContent = '請勾選排程';
+      }
     };
     window.__refreshLineOrderButton = refresh;
     new MutationObserver(refresh).observe(scheduleBody, { childList: true, subtree: true });
@@ -5291,8 +5345,12 @@ document.querySelector('[name="ceremony_offerings"]')
       const selectedGroupId = String(groupSelect.value || '').trim();
       if (!selectedGroupId) { window.alert('請先選擇要傳送的 LINE 群組。'); return; }
       const rows = scheduleRows();
-      const indexes = rows.map((row, index) => ({ row, index })).filter(entry => isFilled(entry.row) && entry.row.dataset.lineOrdered !== 'true');
-      if (!indexes.length) { window.alert('沒有新的法事安排可以下單。'); refresh(); return; }
+      const indexes = rows.map((row, index) => ({ row, index })).filter(entry =>
+        isFilled(entry.row)
+        && scheduleAutoOrderControl(entry.row)?.checked
+        && entry.row.dataset.lineOrdered !== 'true'
+      );
+      if (!indexes.length) { window.alert('請先勾選要自動下單的法事排程。'); refresh(); return; }
       const caseData = window.collect?.() || {};
       const schedules = indexes.map(entry => caseData.schedules?.[entry.index]).filter(Boolean);
       button.disabled = true; button.textContent = '下單中…';

@@ -3899,9 +3899,18 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
     return String(value);
   };
 
-  const wordChoice = (selected, value, label = value) => {
-    const selectedValues = Array.isArray(selected) ? selected : [selected];
-    return `${selectedValues.map(String).includes(value) ? '☑' : '□'}${label}`;
+  const selectedChoiceValues = selected => (Array.isArray(selected) ? selected : [selected])
+    .filter(value => value !== false && value != null && value !== '')
+    .map(String);
+
+  const hasSelectedChoice = (selected, value) => selectedChoiceValues(selected).includes(value);
+
+  const selectedChoiceLabels = (selected, choices) => {
+    const selectedValues = new Set(selectedChoiceValues(selected));
+    return choices
+      .filter(([value]) => selectedValues.has(value))
+      .map(([value, label]) => label || value)
+      .join('、');
   };
 
   const buildWordTemplateData = record => {
@@ -3944,42 +3953,72 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
     // 匯出時使用語意明確的專用欄位，確保 Word 顯示值不會互換。
     data.urn_style_export = value('coffin_style');
     data.coffin_style_export = value('urn_style');
-    data.nailing_summary = `${wordChoice(fields.nailing, '有')}　${wordChoice(fields.nailing, '無')}`;
-    data.maternal_summary = `${wordChoice(fields.maternal, '有')}　${wordChoice(fields.maternal, '無')}`;
-    data.farewell_rite_summary = `${wordChoice(fields.farewell_rite, '有')}　${wordChoice(fields.farewell_rite, '無')}`;
-    data.coffin_rite_summary = `${wordChoice(fields.coffin_rite, '有')}　${wordChoice(fields.coffin_rite, '無')}`;
-    data.coffin_tap_summary = `${wordChoice(fields.coffin_tap, '有')}　${wordChoice(fields.coffin_tap, '無')}`;
-    data.mourning_traditional = wordChoice(fields.mourning_dress, '傳統');
-    data.mourning_black = `${wordChoice(fields.mourning_dress, '黑袍')}　${wordChoice(fields.mourning_dress, '無')}`;
-    data.band_traditional = `${wordChoice(fields.band, '國樂')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
-    data.band_western = `${wordChoice(fields.band, '西樂')}　${wordChoice(fields.band, '無')}　${value('band_people') ? `${value('band_people')}人` : ''}`;
-    data.hearse_chinese = wordChoice(fields.hearse, '中式');
-    data.hearse_western = `${wordChoice(fields.hearse, '西式')}　${wordChoice(fields.hearse, '無')}`;
+    const yesNoChoices = [['有', '有'], ['無', '無']];
+    data.condolence_money = selectedChoiceLabels(fields.condolence_money, yesNoChoices);
+    data.nailing_summary = selectedChoiceLabels(fields.nailing, yesNoChoices);
+    data.maternal_summary = selectedChoiceLabels(fields.maternal, yesNoChoices);
+    data.farewell_rite_summary = selectedChoiceLabels(fields.farewell_rite, yesNoChoices);
+    data.coffin_rite_summary = selectedChoiceLabels(fields.coffin_rite, yesNoChoices);
+    data.coffin_tap_summary = selectedChoiceLabels(fields.coffin_tap, yesNoChoices);
+    data.mourning_traditional = selectedChoiceLabels(fields.mourning_dress, [['傳統', '傳統']]);
+    data.mourning_black = selectedChoiceLabels(fields.mourning_dress, [['黑袍', '黑袍'], ['無', '無']]);
+    data.mourning_dress_summary = selectedChoiceLabels(fields.mourning_dress, [
+      ['傳統', '傳統'], ['黑袍', '黑袍'], ['無', '無']
+    ]);
+    const bandPeople = value('band_people');
+    const bandTraditional = selectedChoiceLabels(fields.band, [['國樂', '國樂']]);
+    const bandWestern = selectedChoiceLabels(fields.band, [['西樂', '西樂'], ['無', '無']]);
+    data.band_traditional = bandTraditional
+      ? [bandTraditional, bandPeople ? `${bandPeople}人` : ''].filter(Boolean).join('　')
+      : '';
+    data.band_western = bandWestern
+      ? [bandWestern, hasSelectedChoice(fields.band, '西樂') && bandPeople ? `${bandPeople}人` : ''].filter(Boolean).join('　')
+      : '';
+    const bandSummaryChoice = selectedChoiceLabels(fields.band, [
+      ['國樂', '國樂'], ['西樂', '西樂'], ['無', '無']
+    ]);
+    data.band_summary = bandSummaryChoice
+      ? [bandSummaryChoice, !hasSelectedChoice(fields.band, '無') && bandPeople ? `${bandPeople}人` : ''].filter(Boolean).join('　')
+      : '';
+    data.hearse_chinese = selectedChoiceLabels(fields.hearse, [['中式', '中式']]);
+    data.hearse_western = selectedChoiceLabels(fields.hearse, [['西式', '西式'], ['無', '無']]);
+    data.hearse_summary = selectedChoiceLabels(fields.hearse, [
+      ['中式', '中式'], ['西式', '西式'], ['無', '無']
+    ]);
     data.food_summary = [
-      `${fields.food_restaurant ? '☑' : '□'}餐廳`,
-      `${fields.food_box ? '☑' : '□'}餐盒`,
-      `${fields.food_cash ? '☑' : '□'}紅包`,
-      `${fields.food_none ? '☑' : '□'}無`,
+      fields.food_restaurant ? '餐廳' : '',
+      fields.food_box ? '餐盒' : '',
+      fields.food_cash ? '紅包' : '',
+      fields.food_none ? '無' : '',
       value('food_note')
     ].filter(Boolean).join('　');
     data.offering_summary = `功德法事（供品 ${fields.offering_meat ? '☑' : '□'}葷　${fields.offering_veg ? '☑' : '□'}素　${fields.offering_own ? '☑' : '□'}自備）`;
-    data.body_care_summary = `${wordChoice(fields.body_care, '一般')}　${wordChoice(fields.body_care, '遺體SPA', '遺體SPA')}`;
-    data.shroud_summary = `${wordChoice(fields.shroud, '自備')}　${wordChoice(fields.shroud, '公司')}`;
+    data.body_care_summary = selectedChoiceLabels(fields.body_care, [['一般', '一般'], ['遺體SPA', '遺體 SPA']]);
+    data.shroud_summary = selectedChoiceLabels(fields.shroud, [['自備', '自備'], ['公司', '公司']]);
+    const ceremonyChoices = [
+      fields.family_ceremony ? '家奠' : '',
+      fields.public_ceremony ? '公奠' : '',
+      fields.open_incense ? '自由拈香' : '',
+      fields.flower_blessing ? '獻花祝福' : '',
+      fields.memorial_service ? '安息禮拜' : ''
+    ].filter(Boolean);
+    const outsideBoardChoice = selectedChoiceLabels(fields.outside_board, yesNoChoices);
     data.outside_board_summary = [
-      '館外接板',
-      wordChoice(fields.outside_board, '有'),
-      wordChoice(fields.outside_board, '無'),
-      `${fields.family_ceremony ? '☑' : '□'}家奠`,
-      `${fields.public_ceremony ? '☑' : '□'}公奠`,
-      `${fields.open_incense ? '☑' : '□'}自由拈香`,
-      `${fields.flower_blessing ? '☑' : '□'}獻花祝福`,
-      `${fields.memorial_service ? '☑' : '□'}安息禮拜`
-    ].join('　');
+      outsideBoardChoice ? `館外接板：${outsideBoardChoice}` : '',
+      ceremonyChoices.length ? `儀式進行：${ceremonyChoices.join('、')}` : ''
+    ].filter(Boolean).join('　');
+    data.photo_style = selectedChoiceLabels(fields.photo_style, [['15吋', '15 吋'], ['大圖', '大圖'], ['無', '無']]);
+    data.maosha = selectedChoiceLabels(fields.maosha, yesNoChoices);
+    data.large_lamp = selectedChoiceLabels(fields.large_lamp, yesNoChoices);
     const filialSonValue = value('filial_son_value') || value('staff_male');
     const eldestGrandsonValue = value('eldest_grandson_value') || value('staff_eldest_grandson');
     data.staff_summary = [
-      `男：${filialSonValue}`,
-      `長孫：${eldestGrandsonValue}`,
+      fields.filial_son_enabled || fields.staff_male_enabled
+        ? `孝男${filialSonValue ? `：${filialSonValue}` : ''}`
+        : '',
+      fields.eldest_grandson_enabled || fields.staff_eldest_enabled
+        ? `長孫${eldestGrandsonValue ? `：${eldestGrandsonValue}` : ''}`
+        : '',
       fields.filial_staff_none ? '無' : ''
     ].filter(Boolean).join('\n');
     const dateWithLunar = (solarDate, manualLunar = '') => {

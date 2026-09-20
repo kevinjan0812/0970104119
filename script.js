@@ -312,6 +312,122 @@ function applyStoredChoiceValue(targetForm, name, value) {
   });
   return true;
 }
+const OPTIONAL_TEXT_CHOICE_LABELS = {
+  towels: '毛巾樣式',
+  small_towels: '小方巾樣式',
+  bath_towels: '外家浴巾',
+  maternal_gifts: '外家禮盒',
+  coffin_style: '骨罐樣式',
+  urn_style: '棺木樣式',
+  obituary_style: '訃聞樣式及張數',
+  extra_printing: '加印記錄',
+  double_towel: '雙連巾',
+  canopy: '棚架搭設',
+  decoration_style: '佈置樣式',
+  ceremony_offerings: '奠禮供品',
+  small_lamps: '小燈數量',
+  tour_bus: '遊覽車',
+  tower_car: '晉塔禮車',
+  coffin_items: '壓棺用品'
+};
+const OPTIONAL_TEXT_CHOICE_NAMES = Object.keys(OPTIONAL_TEXT_CHOICE_LABELS);
+function optionalTextChoiceControls(name) {
+  return {
+    custom: form.elements[`${name}_custom`],
+    none: form.elements[`${name}_none`],
+    text: form.elements[name]
+  };
+}
+function refreshOptionalTextChoiceAvailability(name) {
+  const { custom, text } = optionalTextChoiceControls(name);
+  if (!custom || !text) return;
+  text.readOnly = !custom.checked;
+  text.setAttribute('aria-disabled', custom.checked ? 'false' : 'true');
+}
+function syncOptionalTextChoiceStates(fields = {}) {
+  OPTIONAL_TEXT_CHOICE_NAMES.forEach(name => {
+    const { custom, none, text } = optionalTextChoiceControls(name);
+    if (!custom || !none || !text) return;
+    const hasStoredChoice = Object.prototype.hasOwnProperty.call(fields, `${name}_custom`)
+      || Object.prototype.hasOwnProperty.call(fields, `${name}_none`);
+    if (!hasStoredChoice) {
+      const legacyValue = String(fields[name] ?? text.value ?? '').trim();
+      custom.checked = Boolean(legacyValue) && legacyValue !== '無';
+      none.checked = legacyValue === '無';
+    }
+    refreshOptionalTextChoiceAvailability(name);
+  });
+}
+(() => {
+  OPTIONAL_TEXT_CHOICE_NAMES.forEach(name => {
+    const text = form.elements[name];
+    const field = text?.closest('.field');
+    if (!text || !field) return;
+    const fieldLabel = OPTIONAL_TEXT_CHOICE_LABELS[name]
+      || field.querySelector(':scope > label')?.textContent?.trim()
+      || name;
+    let row = text.closest('.choice-row');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'choice-row';
+      text.replaceWith(row);
+      row.append(text);
+    }
+    row.classList.add('optional-text-choice-row');
+
+    let custom = form.elements[`${name}_custom`];
+    if (!custom) {
+      custom = document.createElement('input');
+      custom.type = 'checkbox';
+      custom.name = `${name}_custom`;
+      custom.setAttribute('aria-label', `啟用${fieldLabel}`);
+      row.insertBefore(custom, text.closest('.option-text-value-control') || text);
+    }
+    if (!custom.closest('label')) {
+      const customLabel = document.createElement('label');
+      row.insertBefore(customLabel, custom);
+      customLabel.append(custom);
+    }
+
+    if (!text.closest('.option-text-value-control')) {
+      const control = document.createElement('span');
+      control.className = 'option-text-value-control';
+      row.insertBefore(control, text);
+      control.append(text);
+      text.placeholder ||= '內容';
+    }
+
+    let none = form.elements[`${name}_none`];
+    if (!none) {
+      none = document.createElement('input');
+      none.type = 'checkbox';
+      none.name = `${name}_none`;
+      const noneLabel = document.createElement('label');
+      noneLabel.append(none, document.createTextNode('無'));
+      row.append(noneLabel);
+    }
+
+    custom.addEventListener('change', () => {
+      if (custom.checked) {
+        none.checked = false;
+        text.focus();
+      }
+      refreshOptionalTextChoiceAvailability(name);
+    });
+    none.addEventListener('change', () => {
+      if (none.checked) custom.checked = false;
+      refreshOptionalTextChoiceAvailability(name);
+    });
+    text.addEventListener('input', () => {
+      if (String(text.value || '').trim()) {
+        custom.checked = true;
+        none.checked = false;
+        refreshOptionalTextChoiceAvailability(name);
+      }
+    });
+    refreshOptionalTextChoiceAvailability(name);
+  });
+})();
 function collect() {
   const vendors = [...($('#vendorsTable tbody')?.rows || [])].map(row => ({
     item: row.querySelector('[name="vendor_item"]')?.value || '',
@@ -384,6 +500,7 @@ function load(data) {
       control.value = value;
     }
   });
+  syncOptionalTextChoiceStates(data.fields || {});
   window.__loadPaperItems?.(
     Array.isArray(data.paperItems) ? data.paperItems : data.fields?.paper_offerings
   );
@@ -2686,6 +2803,7 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
       const control = form.elements[name];
       if (control) control.value = value ?? '';
     });
+    syncOptionalTextChoiceStates(record.fields || {});
     window.__loadPaperItems?.(
       Array.isArray(record.paperItems) ? record.paperItems : record.fields?.paper_offerings
     );
@@ -3949,10 +4067,26 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
       data[`contact_${slot}_phone`] = wordValue(contact.phone);
     }
 
+    const selectedOptionalTextValue = name => {
+      const legacyValue = value(name).trim();
+      const customSelected = Object.prototype.hasOwnProperty.call(fields, `${name}_custom`)
+        ? Boolean(fields[`${name}_custom`])
+        : Boolean(legacyValue) && legacyValue !== '無';
+      const noneSelected = Object.prototype.hasOwnProperty.call(fields, `${name}_none`)
+        ? Boolean(fields[`${name}_none`])
+        : legacyValue === '無';
+      return [customSelected ? legacyValue : '', noneSelected ? '無' : '']
+        .filter(Boolean)
+        .join('、');
+    };
+    OPTIONAL_TEXT_CHOICE_NAMES.forEach(name => {
+      data[name] = selectedOptionalTextValue(name);
+    });
+
     // 畫面上的骨罐、棺木標籤沿用既有資料欄位的反向命名；
     // 匯出時使用語意明確的專用欄位，確保 Word 顯示值不會互換。
-    data.urn_style_export = value('coffin_style');
-    data.coffin_style_export = value('urn_style');
+    data.urn_style_export = selectedOptionalTextValue('coffin_style');
+    data.coffin_style_export = selectedOptionalTextValue('urn_style');
     const yesNoChoices = [['有', '有'], ['無', '無']];
     data.condolence_money = selectedChoiceLabels(fields.condolence_money, yesNoChoices);
     data.nailing_summary = selectedChoiceLabels(fields.nailing, yesNoChoices);
@@ -3993,8 +4127,12 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
       value('food_note')
     ].filter(Boolean).join('　');
     data.offering_summary = `功德法事（供品 ${fields.offering_meat ? '☑' : '□'}葷　${fields.offering_veg ? '☑' : '□'}素　${fields.offering_own ? '☑' : '□'}自備）`;
-    data.body_care_summary = selectedChoiceLabels(fields.body_care, [['一般', '一般'], ['遺體SPA', '遺體 SPA']]);
-    data.shroud_summary = selectedChoiceLabels(fields.shroud, [['自備', '自備'], ['公司', '公司']]);
+    data.body_care_summary = selectedChoiceLabels(fields.body_care, [
+      ['一般', '一般'], ['遺體SPA', '遺體 SPA'], ['無', '無']
+    ]);
+    data.shroud_summary = selectedChoiceLabels(fields.shroud, [
+      ['自備', '自備'], ['公司', '公司'], ['無', '無']
+    ]);
     const ceremonyChoices = [
       fields.family_ceremony ? '家奠' : '',
       fields.public_ceremony ? '公奠' : '',
@@ -4003,9 +4141,15 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
       fields.memorial_service ? '安息禮拜' : ''
     ].filter(Boolean);
     const outsideBoardChoice = selectedChoiceLabels(fields.outside_board, yesNoChoices);
+    data.outside_board_only_summary = outsideBoardChoice
+      ? `館外接板：${outsideBoardChoice}`
+      : '館外接板：';
+    data.ceremony_process_summary = ceremonyChoices.length
+      ? `儀式進行：${ceremonyChoices.join('、')}`
+      : '儀式進行：';
     data.outside_board_summary = [
-      outsideBoardChoice ? `館外接板：${outsideBoardChoice}` : '',
-      ceremonyChoices.length ? `儀式進行：${ceremonyChoices.join('、')}` : ''
+      data.outside_board_only_summary,
+      data.ceremony_process_summary
     ].filter(Boolean).join('　');
     data.photo_style = selectedChoiceLabels(fields.photo_style, [['15吋', '15 吋'], ['大圖', '大圖'], ['無', '無']]);
     data.maosha = selectedChoiceLabels(fields.maosha, yesNoChoices);

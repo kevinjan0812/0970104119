@@ -457,6 +457,80 @@ html {
     max-width: 100%;
   }
 
+  #arrangement .optional-text-choice-row {
+    box-sizing: border-box;
+    width: 100% !important;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px !important;
+    padding: 6px 9px;
+  }
+
+  #arrangement .optional-text-choice-row > label {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex: 0 0 auto;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  #arrangement .optional-text-choice-row .option-text-value-control {
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 70px;
+    min-width: 58px;
+    height: 34px;
+    padding: 0 9px;
+    border: 1px solid #a9c9c4;
+    border-radius: 999px;
+    background: #f3faf8;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, .05);
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+
+  #arrangement .optional-text-choice-row .option-text-value-control:focus-within {
+    border-color: var(--brand);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(25, 122, 110, .13);
+  }
+
+  #arrangement .optional-text-choice-row .option-text-value-control:has(input[readonly]) {
+    background: #f1f5f4;
+    border-color: #cbd5e1;
+  }
+
+  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    width: 100% !important;
+    min-width: 0;
+    height: 30px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #174f49;
+    font-weight: 700;
+    box-shadow: none !important;
+  }
+
+  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input:focus {
+    border: 0;
+    box-shadow: none;
+  }
+
+  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input::placeholder {
+    color: #94a3b8;
+    font-weight: 600;
+    opacity: 1;
+  }
+
+  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input[readonly] {
+    color: #64748b;
+  }
+
   /* Compact fields sized to the values shown in the completed form. */
   #caseForm #arrangement [name="coffin_style"] { box-sizing: border-box; width: 260px; min-width: 0; max-width: 100%; }
   #caseForm #arrangement [name="urn_style"],

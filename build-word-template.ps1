@@ -111,6 +111,28 @@ try {
     Set-ParagraphText -Paragraph $paragraph -Text $Text
   }
 
+  function Get-TableRowText {
+    param(
+      [System.Xml.XmlNode]$Row
+    )
+
+    return (($Row.SelectNodes('.//w:t', $namespaceManager) | ForEach-Object { $_.InnerText }) -join '')
+  }
+
+  function Find-TableRowNumber {
+    param(
+      [System.Xml.XmlNode[]]$Rows,
+      [string]$Label
+    )
+
+    for ($index = 0; $index -lt $Rows.Count; $index += 1) {
+      if ((Get-TableRowText -Row $Rows[$index]).Contains($Label)) {
+        return $index + 1
+      }
+    }
+    return 0
+  }
+
   function Remove-UnderlinedBlankRuns {
     param(
       [System.Xml.XmlNode]$Paragraph
@@ -192,7 +214,33 @@ try {
   }
   $mainTable = $tables[0]
   $mainRows = @($mainTable.SelectNodes('./w:tr', $namespaceManager))
-  $postPaperRowOffset = if ($mainRows.Count -ge 36) { 1 } else { 0 }
+  $paperOfferingsRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x7D19, [char]0x7D2E, [char]0x9805, [char]0x76EE))
+  $paperMoneyRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x5EAB, [char]0x9322))
+  $bodyCareRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x6C90, [char]0x6D74, [char]0x66F4, [char]0x8863))
+  $outsideBoardRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x9928, [char]0x5916, [char]0x63A5, [char]0x677F))
+  $ceremonyProcessRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x5100, [char]0x5F0F, [char]0x9032, [char]0x884C))
+  $canopyRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x68DA, [char]0x67B6, [char]0x642D, [char]0x8A2D))
+  $photoRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x76F8, [char]0x7247, [char]0x6A23, [char]0x5F0F))
+  $largeLampRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x5927, [char]0x71C8, [char]0x88FD, [char]0x505A))
+  $tourBusRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x904A, [char]0x89BD, [char]0x8ECA))
+  $processionRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x9663, [char]0x982D))
+  $hundredDaysRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x767E, [char]0x65E5))
+  $ancestorTabletRow = Find-TableRowNumber -Rows $mainRows -Label $(-join @([char]0x516C, [char]0x5ABD, [char]0x65B9, [char]0x4F4D))
+  $requiredRows = @(
+    $paperOfferingsRow, $paperMoneyRow, $bodyCareRow, $outsideBoardRow,
+    $canopyRow, $photoRow, $largeLampRow, $tourBusRow,
+    $processionRow, $hundredDaysRow, $ancestorTabletRow
+  )
+  if ($requiredRows -contains 0) {
+    throw 'The Word template main table does not contain all required labeled rows.'
+  }
+
+  $scheduleStartRow = $paperOfferingsRow - 4
+  $offeringRow = $scheduleStartRow - 1
+  $hasSplitChoiceRows = $offeringRow -ge 19
+  $hasScheduleRemarkColumn = (Get-TableRowText -Row $mainRows[$scheduleStartRow - 1]).Contains(
+    $(-join @([char]0x5099, [char]0x8A3B))
+  )
   $mainCells = @(
     @(1, 2, '{{case_name}}'), @(1, 4, '{{gender}}'), @(1, 6, '{{funeral_date}}'),
     @(2, 2, ''), @(2, 4, '{{birth_date_export}}'), @(2, 6, '{{death_date_export}}'),
@@ -209,39 +257,52 @@ try {
     @(13, 2, '{{urn_style_export}}'), @(13, 4, '{{coffin_style_export}}'),
     @(14, 2, '{{obituary_style}}'), @(14, 4, '{{extra_printing}}'), @(14, 6, '{{date_selection}}'),
     @(15, 2, '{{farewell_rite_summary}}'), @(15, 4, '{{coffin_rite_summary}}'), @(15, 6, '{{coffin_tap_summary}}'),
-    @(16, 2, '{{mourning_traditional}}'), @(16, 4, '{{band_traditional}}'), @(16, 6, '{{hearse_chinese}}'),
-    @(17, 2, '{{mourning_black}}'), @(17, 4, '{{band_western}}'), @(17, 6, '{{hearse_western}}'),
-    @(18, 2, '{{double_towel}}'), @(18, 4, '{{food_summary}}'),
-    @(19, 1, '{{offering_summary}}'),
-    @(24, 2, '{{paper_offerings}}'),
-    @((25 + $postPaperRowOffset), 2, '{{body_care_summary}}'), @((25 + $postPaperRowOffset), 4, '{{shroud_summary}}'),
-    @((26 + $postPaperRowOffset), 1, '{{outside_board_summary}}'),
-    @((27 + $postPaperRowOffset), 2, '{{canopy}}'), @((27 + $postPaperRowOffset), 4, '{{ceremony_location}}'), @((27 + $postPaperRowOffset), 6, '{{decoration_style}}'),
-    @((28 + $postPaperRowOffset), 2, '{{photo_style}}'), @((28 + $postPaperRowOffset), 4, '{{ceremony_offerings}}'), @((28 + $postPaperRowOffset), 6, '{{maosha}}'),
-    @((29 + $postPaperRowOffset), 2, '{{large_lamp}}'), @((29 + $postPaperRowOffset), 4, '{{staff_summary}}'), @((29 + $postPaperRowOffset), 6, '{{small_lamps}}'),
-    @((30 + $postPaperRowOffset), 2, '{{tour_bus}}'), @((30 + $postPaperRowOffset), 4, '{{tower_car}}'), @((30 + $postPaperRowOffset), 6, '{{coffin_items}}'),
-    @((31 + $postPaperRowOffset), 1, $processionLabel),
-    @((32 + $postPaperRowOffset), 1, '{{procession_summary}}'),
-    @((34 + $postPaperRowOffset), 2, '{{hundred_days}}'), @((34 + $postPaperRowOffset), 4, '{{anniversary}}'),
-    @((35 + $postPaperRowOffset), 2, '{{ancestor_tablet}}'), @((35 + $postPaperRowOffset), 4, '{{ancestor_tower}}')
+    @($offeringRow, 1, '{{offering_summary}}'),
+    @($paperOfferingsRow, 2, '{{paper_offerings}}'),
+    @($paperMoneyRow, 2, '{{paper_money}}'),
+    @($bodyCareRow, 2, '{{body_care_summary}}'), @($bodyCareRow, 4, '{{shroud_summary}}'),
+    @($outsideBoardRow, 1, $(if ($ceremonyProcessRow -gt 0) { '{{outside_board_only_summary}}' } else { '{{outside_board_summary}}' })),
+    @($canopyRow, 2, '{{canopy}}'), @($canopyRow, 4, '{{ceremony_location}}'), @($canopyRow, 6, '{{decoration_style}}'),
+    @($photoRow, 2, '{{photo_style}}'), @($photoRow, 4, '{{ceremony_offerings}}'), @($photoRow, 6, '{{maosha}}'),
+    @($largeLampRow, 2, '{{large_lamp}}'), @($largeLampRow, 4, '{{staff_summary}}'), @($largeLampRow, 6, '{{small_lamps}}'),
+    @($tourBusRow, 2, '{{tour_bus}}'), @($tourBusRow, 4, '{{tower_car}}'), @($tourBusRow, 6, '{{coffin_items}}'),
+    @($processionRow, 1, $processionLabel),
+    @(($processionRow + 1), 1, '{{procession_summary}}'),
+    @($hundredDaysRow, 2, '{{hundred_days}}'), @($hundredDaysRow, 4, '{{anniversary}}'),
+    @($ancestorTabletRow, 2, '{{ancestor_tablet}}'), @($ancestorTabletRow, 4, '{{ancestor_tower}}')
   )
-  if ($postPaperRowOffset -eq 1) {
+
+  if ($hasSplitChoiceRows) {
     $mainCells += @(
-      @(20, 1, '{{schedule_01_item}}'), @(20, 2, '{{schedule_01_detail}}'), @(20, 4, '{{schedule_01_remark}}'),
-      @(21, 1, '{{schedule_02_item}}'), @(21, 2, '{{schedule_02_detail}}'), @(21, 4, '{{schedule_02_remark}}'),
-      @(22, 1, '{{schedule_03_item}}'), @(22, 2, '{{schedule_03_detail}}'), @(22, 4, '{{schedule_03_remark}}'),
-      @(23, 1, '{{schedule_04_item}}'), @(23, 2, '{{schedule_04_detail}}'), @(23, 4, '{{schedule_04_remark}}')
+      @(16, 2, '{{mourning_traditional}}'), @(16, 4, '{{band_traditional}}'), @(16, 6, '{{hearse_chinese}}'),
+      @(17, 2, '{{mourning_black}}'), @(17, 4, '{{band_western}}'), @(17, 6, '{{hearse_western}}'),
+      @(18, 2, '{{double_towel}}'), @(18, 4, '{{food_summary}}')
     )
   } else {
     $mainCells += @(
-      @(20, 1, '{{schedule_01_item}}'), @(20, 2, '{{schedule_01_detail}}'), @(20, 3, '{{schedule_05_item}}'), @(20, 4, '{{schedule_05_detail}}'),
-      @(21, 1, '{{schedule_02_item}}'), @(21, 2, '{{schedule_02_detail}}'), @(21, 3, '{{schedule_06_item}}'), @(21, 4, '{{schedule_06_detail}}'),
-      @(22, 1, '{{schedule_03_item}}'), @(22, 2, '{{schedule_03_detail}}'), @(22, 3, '{{schedule_07_item}}'), @(22, 4, '{{schedule_07_detail}}'),
-      @(23, 1, '{{schedule_04_item}}'), @(23, 2, '{{schedule_04_detail}}'), @(23, 3, '{{schedule_08_item}}'), @(23, 4, '{{schedule_08_detail}}')
+      @(16, 2, '{{mourning_dress_summary}}'), @(16, 4, '{{band_summary}}'), @(16, 6, '{{hearse_summary}}'),
+      @(17, 2, '{{double_towel}}'), @(17, 4, '{{food_summary}}')
     )
   }
-  if ($postPaperRowOffset -eq 1) {
-    Set-CellText $mainTable 25 2 '{{paper_money}}'
+
+  if ($ceremonyProcessRow -gt 0) {
+    $mainCells += @(, @($ceremonyProcessRow, 1, '{{ceremony_process_summary}}'))
+  }
+
+  if ($hasScheduleRemarkColumn) {
+    $mainCells += @(
+      @($scheduleStartRow, 1, '{{schedule_01_item}}'), @($scheduleStartRow, 2, '{{schedule_01_detail}}'), @($scheduleStartRow, 4, '{{schedule_01_remark}}'),
+      @(($scheduleStartRow + 1), 1, '{{schedule_02_item}}'), @(($scheduleStartRow + 1), 2, '{{schedule_02_detail}}'), @(($scheduleStartRow + 1), 4, '{{schedule_02_remark}}'),
+      @(($scheduleStartRow + 2), 1, '{{schedule_03_item}}'), @(($scheduleStartRow + 2), 2, '{{schedule_03_detail}}'), @(($scheduleStartRow + 2), 4, '{{schedule_03_remark}}'),
+      @(($scheduleStartRow + 3), 1, '{{schedule_04_item}}'), @(($scheduleStartRow + 3), 2, '{{schedule_04_detail}}'), @(($scheduleStartRow + 3), 4, '{{schedule_04_remark}}')
+    )
+  } else {
+    $mainCells += @(
+      @($scheduleStartRow, 1, '{{schedule_01_item}}'), @($scheduleStartRow, 2, '{{schedule_01_detail}}'), @($scheduleStartRow, 3, '{{schedule_05_item}}'), @($scheduleStartRow, 4, '{{schedule_05_detail}}'),
+      @(($scheduleStartRow + 1), 1, '{{schedule_02_item}}'), @(($scheduleStartRow + 1), 2, '{{schedule_02_detail}}'), @(($scheduleStartRow + 1), 3, '{{schedule_06_item}}'), @(($scheduleStartRow + 1), 4, '{{schedule_06_detail}}'),
+      @(($scheduleStartRow + 2), 1, '{{schedule_03_item}}'), @(($scheduleStartRow + 2), 2, '{{schedule_03_detail}}'), @(($scheduleStartRow + 2), 3, '{{schedule_07_item}}'), @(($scheduleStartRow + 2), 4, '{{schedule_07_detail}}'),
+      @(($scheduleStartRow + 3), 1, '{{schedule_04_item}}'), @(($scheduleStartRow + 3), 2, '{{schedule_04_detail}}'), @(($scheduleStartRow + 3), 3, '{{schedule_08_item}}'), @(($scheduleStartRow + 3), 4, '{{schedule_08_detail}}')
+    )
   }
   foreach ($cellSpec in $mainCells) {
     Set-CellText $mainTable $cellSpec[0] $cellSpec[1] $cellSpec[2]

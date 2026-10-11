@@ -62,7 +62,45 @@ document.addEventListener('click', event => {
 const vendorItems=['接體','冰箱','靈堂','棚架','花山','椅套','擇日','棺木','骨罐','協助驗屍','洗穿化殮','壽衣','司儀','禮生','樂隊','扶棺人員','靈車','供品','素菜','交通車','紙紮','庫錢','投影設備'];
 function input(n,type='text',value=''){return `<input type="${type}" ${n?`name="${n}"`:''} value="${value}">`}
 function remove(){return '<button type="button" class="btn remove" style="padding:6px 9px">刪除</button>'}
-function lunarText(value){if(!value)return '';try{let normalized=String(value).trim().replaceAll('/','-').split(/[ T]/)[0],roc=normalized.match(/^(\d{3})-(\d{2})-(\d{2})$/);if(roc)normalized=`${Number(roc[1])+1911}-${roc[2]}-${roc[3]}`;let d=new Date(normalized+'T12:00:00');if(Number.isNaN(d.getTime()))return '';let p=new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{year:'numeric',month:'long',day:'numeric'}).formatToParts(d),v=t=>p.find(x=>x.type===t)?.value||'',y=Number(v('relatedYear')||v('year')),m=v('month'),monthMap={正:1,一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,十一:11,冬:11,十二:12,臘:12},month=monthMap[String(m).replace('閏','').replace('月','')],day=Number(String(v('day')).replace(/\D/g,'')),leap=String(m).includes('閏')?'閏':'';if(!Number.isFinite(y)||!month||!day)return '';let stems=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'],branches=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'],sexagenaryYear=d.getFullYear()-(d.getMonth()===1&&d.getDate()<4?1:0);return `${stems[(sexagenaryYear-4)%10]}${branches[(sexagenaryYear-4)%12]}年農${leap}${month}/${day}`}catch{return '農曆轉換暫時無法使用'}}
+function calendarPartNumber(value){
+  const source=String(value||'').trim();
+  const digits=source.match(/\d+/)?.[0];
+  if(digits)return Number(digits);
+  const text=source.replace(/[\s閏年月日農曆]/g,'').replace(/^初/,'');
+  const values={〇:0,零:0,一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9};
+  if(text==='正')return 1;
+  if(text==='冬')return 11;
+  if(text==='臘')return 12;
+  if(text.startsWith('廿'))return 20+(values[text.slice(1)]||0);
+  if(text.startsWith('卅'))return 30+(values[text.slice(1)]||0);
+  if(text.includes('十')){
+    const [tens,ones]=text.split('十');
+    return (tens?values[tens]||0:1)*10+(ones?values[ones]||0:0);
+  }
+  return values[text]||0;
+}
+function lunarText(value){
+  if(!value)return '';
+  try{
+    let normalized=String(value).trim().replaceAll('/','-').split(/[ T]/)[0];
+    const roc=normalized.match(/^(\d{3})-(\d{2})-(\d{2})$/);
+    if(roc)normalized=`${Number(roc[1])+1911}-${roc[2]}-${roc[3]}`;
+    const date=new Date(normalized+'T12:00:00');
+    if(Number.isNaN(date.getTime()))return '';
+    const parts=new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{year:'numeric',month:'long',day:'numeric'}).formatToParts(date);
+    const get=type=>parts.find(part=>part.type===type)?.value||'';
+    const monthText=get('month');
+    const month=calendarPartNumber(monthText);
+    const day=calendarPartNumber(get('day'));
+    if(!month||!day)return '';
+    const stems=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+    const branches=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    const relatedYear=calendarPartNumber(get('relatedYear')||get('year'));
+    const lunarYear=relatedYear||(date.getMonth()<2&&month>=11?date.getFullYear()-1:date.getFullYear());
+    const cycle=get('yearName')||`${stems[(lunarYear-4)%10]}${branches[(lunarYear-4)%12]}`;
+    return `${cycle}年農${String(monthText).includes('閏')?'閏':''}${month}/${day}`;
+  }catch{return '農曆轉換暫時無法使用'}
+}
 function syncLunarDates(root=document){root.querySelectorAll('input[type="date"]').forEach(date=>{let note=date.nextElementSibling;if(!note||!note.classList.contains('lunar-note')){note=document.createElement('p');note.className='lunar-note';date.insertAdjacentElement('afterend',note);date.addEventListener('change',()=>syncLunarDates(date.parentElement))}note.textContent=lunarText(date.value);note.classList.toggle('show',!!date.value)})}
 function prefersMobileDateKeyboard(){
   const coarsePointer=typeof window.matchMedia==='function'&&window.matchMedia('(pointer: coarse)').matches;
@@ -2739,6 +2777,8 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     if (!isDateInput(event.target)) return;
     formatDateCharacters(event.target);
     validateDate(event.target);
+    window.refreshBasicLunarDates?.();
+    window.__refreshDateSelectionLunar?.();
   }, true);
 
   caseForm.addEventListener('blur', event => {
@@ -5357,17 +5397,17 @@ document.querySelector('[name="ceremony_offerings"]')
       const formatter = new Intl.DateTimeFormat('zh-TW-u-ca-chinese', { year: 'numeric', month: 'long', day: 'numeric' });
       const lunarParts = formatter.formatToParts(date);
       const find = type => lunarParts.find(part => part.type === type)?.value || '';
-      const year = Number(find('relatedYear') || find('year'));
+      const relatedYear = calendarPartNumber(find('relatedYear') || find('year'));
       const monthText = find('month');
-      const monthMap = { 正: 1, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 十一: 11, 冬: 11, 十二: 12, 臘: 12 };
-      const month = monthMap[String(monthText).replace('閏', '').replace('月', '')];
-      const day = Number(String(find('day')).replace(/\D/g, ''));
-      if (!Number.isFinite(year) || !month || !day) return null;
+      const month = calendarPartNumber(monthText);
+      const day = calendarPartNumber(find('day'));
+      if (!month || !day) return null;
       const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
       const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
       const leap = String(monthText).includes('閏') ? '閏' : '';
-          const sexagenaryYear = year;
-      return { year: sexagenaryYear, lunarYear: year, text: `${stems[(sexagenaryYear - 4) % 10]}${branches[(sexagenaryYear - 4) % 12]}年農${leap}${month}/${day}` };
+      const lunarYear = relatedYear || (date.getMonth() < 2 && month >= 11 ? date.getFullYear() - 1 : date.getFullYear());
+      const cycle = find('yearName') || `${stems[(lunarYear - 4) % 10]}${branches[(lunarYear - 4) % 12]}`;
+      return { year: lunarYear, lunarYear, text: `${cycle}年農${leap}${month}/${day}` };
     };
     // 擇日資料表的農、國曆雙向換算。農曆可輸入：乙巳年農12/16 或 2025年農12/16。
     const solarValueForDate = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -5766,17 +5806,17 @@ document.querySelector('[name="ceremony_offerings"]')
     if (!date) return '';
     const parts = new Intl.DateTimeFormat('zh-TW-u-ca-chinese', { year: 'numeric', month: 'long', day: 'numeric' }).formatToParts(date);
     const find = type => parts.find(part => part.type === type)?.value || '';
-    const year = Number(find('relatedYear') || find('year'));
+    const relatedYear = calendarPartNumber(find('relatedYear') || find('year'));
     const monthText = find('month');
-    const monthMap = { 正: 1, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 十一: 11, 冬: 11, 十二: 12, 臘: 12 };
-    const month = monthMap[String(monthText).replace('閏', '').replace('月', '')];
-    const day = Number(String(find('day')).replace(/\D/g, ''));
-    if (!Number.isFinite(year) || !month || !day) return '';
+    const month = calendarPartNumber(monthText);
+    const day = calendarPartNumber(find('day'));
+    if (!month || !day) return '';
     const stems = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
     const branches = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
     const leap = String(monthText).includes('閏') ? '閏' : '';
-    const sexagenaryYear = date.getFullYear() - (date.getMonth() === 1 && date.getDate() < 4 ? 1 : 0);
-    return `${stems[(sexagenaryYear - 4) % 10]}${branches[(sexagenaryYear - 4) % 12]}年農${leap}${month}/${day}`;
+    const lunarYear = relatedYear || (date.getMonth() < 2 && month >= 11 ? date.getFullYear() - 1 : date.getFullYear());
+    const cycle = find('yearName') || `${stems[(lunarYear - 4) % 10]}${branches[(lunarYear - 4) % 12]}`;
+    return `${cycle}年農${leap}${month}/${day}`;
   };
   const refreshDateSelectionLunar = () => {
     document.querySelectorAll('#date-selection-sheet [data-date-with-time]').forEach(input => {
@@ -5820,11 +5860,12 @@ document.querySelector('[name="ceremony_offerings"]')
     if (!date) return null;
     const parts = new Intl.DateTimeFormat('zh-TW-u-ca-chinese', { year: 'numeric', month: 'long', day: 'numeric' }).formatToParts(date);
     const get = type => parts.find(part => part.type === type)?.value || '';
-    const lunarYear = Number(get('relatedYear') || get('year'));
+    const relatedYear = calendarPartNumber(get('relatedYear') || get('year'));
     const monthText = get('month');
-    const month = monthMap[String(monthText).replace('閏', '').replace('月', '')];
-    const day = Number(String(get('day')).replace(/\D/g, ''));
-    if (!Number.isFinite(lunarYear) || !month || !day) return null;
+    const month = calendarPartNumber(monthText);
+    const day = calendarPartNumber(get('day'));
+    if (!month || !day) return null;
+    const lunarYear = relatedYear || (date.getMonth() < 2 && month >= 11 ? date.getFullYear() - 1 : date.getFullYear());
     const cycle = get('yearName') || `${stems[(lunarYear - 4) % 10]}${branches[(lunarYear - 4) % 12]}`;
     return { cycle, month, day, leap: String(monthText).includes('閏'), text: `${cycle}年農${String(monthText).includes('閏') ? '閏' : ''}${month}/${day}` };
   };

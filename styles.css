@@ -396,7 +396,8 @@ html {
     background: #fff;
     box-shadow: 0 0 0 3px rgba(25, 122, 110, .13);
   }
-  #arrangement .band-choice .people-inline input[type="number"] {
+  #arrangement .band-choice .people-inline input[type="number"],
+  #arrangement .band-choice .people-inline input[data-original-input-type="number"] {
     box-sizing: border-box;
     width: 2.5ch !important;
     min-width: 2.5ch !important;
@@ -414,11 +415,13 @@ html {
     appearance: textfield;
     -moz-appearance: textfield;
   }
-  #arrangement .band-choice .people-inline input[type="number"]:focus {
+  #arrangement .band-choice .people-inline input[type="number"]:focus,
+  #arrangement .band-choice .people-inline input[data-original-input-type="number"]:focus {
     border: 0;
     box-shadow: none;
   }
-  #arrangement .band-choice .people-inline input[type="number"]::placeholder {
+  #arrangement .band-choice .people-inline input[type="number"]::placeholder,
+  #arrangement .band-choice .people-inline input[data-original-input-type="number"]::placeholder {
     color: #94a3b8;
     font-weight: 600;
     opacity: 1;
@@ -764,7 +767,8 @@ html {
   }
 
   /* 孝杖數量的兩個數字欄位維持兩個字元寬，避免原生數字控制鈕擠壓內容。 */
-  #arrangement .staff-options input[type="number"] {
+  #arrangement .staff-options input[type="number"],
+  #arrangement .staff-options input[data-original-input-type="number"] {
     box-sizing: content-box;
     width: 2ch !important;
     min-width: 2ch !important;

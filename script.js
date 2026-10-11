@@ -6181,25 +6181,32 @@ document.querySelector('[name="ceremony_offerings"]')
   actions.insertBefore(saveButton, wordExport || actions.firstElementChild);
 })();
 
-// 一般文字欄位使用繁體中文輸入提示，避免切換欄位時被瀏覽器要求英文鍵盤。
-// 日期、時間、電話與純數量欄位仍保留原本的專用輸入模式。
+// 所有可直接輸入內容的欄位都使用繁體中文文字輸入提示，避免倉頡輸入法
+// 在日期、時間、電話、人數或數量欄位中從「中／倉」自動切成「英／倉」。
 (() => {
   const textControlSelector = [
     'input:not([type])',
     'input[type="text"]',
     'input[type="search"]',
+    'input[type="tel"]',
+    'input[type="email"]',
+    'input[type="url"]',
+    'input[type="number"]',
     'textarea'
   ].join(',');
-  const specializedInputModes = new Set(['numeric', 'decimal', 'tel', 'email', 'url']);
+  const convertibleInputTypes = new Set(['search', 'tel', 'email', 'url', 'number']);
 
   const configureChineseTextControl = control => {
     if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return;
     if (!control.matches(textControlSelector)) return;
-    const currentInputMode = String(control.getAttribute('inputmode') || '').toLowerCase();
-    if (specializedInputModes.has(currentInputMode)) return;
+
+    if (control instanceof HTMLInputElement && convertibleInputTypes.has(control.type)) {
+      control.dataset.originalInputType = control.type;
+      control.type = 'text';
+    }
 
     control.lang = 'zh-Hant-TW';
-    control.inputMode = 'text';
+    if (control.getAttribute('inputmode') !== 'text') control.inputMode = 'text';
     control.autocapitalize = 'none';
     control.spellcheck = false;
   };
@@ -6215,11 +6222,20 @@ document.querySelector('[name="ceremony_offerings"]')
   document.addEventListener('focusin', event => configureChineseTextControl(event.target));
   new MutationObserver(records => {
     records.forEach(record => {
+      if (record.type === 'attributes') {
+        configureChineseTextControl(record.target);
+        return;
+      }
       record.addedNodes.forEach(node => {
         if (node instanceof Element) configureChineseTextControls(node);
       });
     });
-  }).observe(document.body, { childList: true, subtree: true });
+  }).observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['type', 'inputmode']
+  });
 
   window.prepareChineseTextInputs = () => configureChineseTextControls(document);
 })();

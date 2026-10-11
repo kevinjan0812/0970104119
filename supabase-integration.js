@@ -959,7 +959,14 @@
         if (googleRedirectInput) googleRedirectInput.value = result.redirect_uri || '';
         googleConfigForm.dataset.configured = result.configured ? 'true' : 'false';
         googleConfigForm.dataset.legacy = result.legacy ? 'true' : 'false';
-        if (result.configured) {
+        if (result.connected && result.authorization_valid === false) {
+          const connectionMessage = result.authorization_code === 'google_reconnect_required'
+            ? 'Google 行事曆授權已失效。請回到功德法事排程按「加入GOOGLE日曆」重新授權。'
+            : `Google 行事曆連線檢查失敗：${result.authorization_message || '請確認 Calendar API 已啟用。'}`;
+          setGoogleConfigMessage(result.legacy
+            ? `${connectionMessage}目前仍使用舊版共用設定，建議改用本公司的 Google Cloud 專案。`
+            : connectionMessage, true);
+        } else if (result.configured) {
           setGoogleConfigMessage(result.connected
             ? '已設定本公司的 Google Cloud 專案，且行事曆已完成授權。'
             : '已設定本公司的 Google Cloud 專案；請到功德法事排程按「加入GOOGLE日曆」完成授權。');

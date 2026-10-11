@@ -5813,12 +5813,48 @@ document.querySelector('[name="ceremony_offerings"]')
   if (!scheduleBody || !caseForm) return;
 
   let pendingCalendarSync = null;
+  let authorizationPopupWatcher = 0;
+
+  const stopAuthorizationPopupWatcher = () => {
+    window.clearInterval(authorizationPopupWatcher);
+    authorizationPopupWatcher = 0;
+  };
+
+  const openAuthorizationPopup = () => {
+    const popup = window.open(
+      '',
+      'funeral-google-calendar-oauth',
+      'popup=yes,width=560,height=760,resizable=yes,scrollbars=yes'
+    );
+    if (!popup) return null;
+    try {
+      popup.document.title = 'Google 行事曆授權';
+      popup.document.body.innerHTML = '<p style="font:16px system-ui;padding:24px">正在確認 Google 行事曆授權，請稍候…</p>';
+    } catch {
+      // 已存在且位於 Google 網域的授權視窗不可讀取，但仍可重複使用。
+    }
+    return popup;
+  };
+
+  const watchAuthorizationPopup = (popup, row, button) => {
+    stopAuthorizationPopupWatcher();
+    if (!popup) return;
+    authorizationPopupWatcher = window.setInterval(() => {
+      if (!popup.closed) return;
+      stopAuthorizationPopupWatcher();
+      if (!pendingCalendarSync || pendingCalendarSync.button !== button) return;
+      pendingCalendarSync = null;
+      removeGoogleAuthorizationLink(button);
+      button.disabled = false;
+      refreshCalendarButton(row);
+    }, 500);
+  };
 
   const removeGoogleAuthorizationLink = button => {
     button.parentElement?.querySelector('.schedule-google-calendar-link')?.remove();
   };
 
-  const showGoogleAuthorizationLink = (row, button, authorizationUrl) => {
+  const showGoogleAuthorizationLink = (row, button, authorizationUrl, popup = null) => {
     removeGoogleAuthorizationLink(button);
     const link = document.createElement('a');
     link.className = 'schedule-google-calendar-link';
@@ -5826,7 +5862,7 @@ document.querySelector('[name="ceremony_offerings"]')
     link.target = 'funeral-google-calendar-oauth';
     link.textContent = '開啟 Google 授權';
     link.addEventListener('click', () => {
-      pendingCalendarSync = { row, button };
+      pendingCalendarSync = { row, button, popup };
       button.textContent = '等待 Google 授權…';
     });
     button.after(link);
@@ -5926,7 +5962,7 @@ document.querySelector('[name="ceremony_offerings"]')
   });
 
   const beginGoogleAuthorization = async (row, button, popup, forceReconnect = false) => {
-    pendingCalendarSync = { row, button };
+    pendingCalendarSync = { row, button, popup };
     let result;
     try {
       result = await window.funeralCloud.googleCalendar({
@@ -5936,12 +5972,22 @@ document.querySelector('[name="ceremony_offerings"]')
       });
     } catch (error) {
       pendingCalendarSync = null;
+      stopAuthorizationPopupWatcher();
+      popup?.close();
       throw error;
     }
-    if (!result?.authorization_url) throw new Error('伺服器未回傳 Google 授權網址。');
+    if (!result?.authorization_url) {
+      pendingCalendarSync = null;
+      popup?.close();
+      throw new Error('伺服器未回傳 Google 授權網址。');
+    }
     button.dataset.googleAuthorizationUrl = result.authorization_url;
-    popup?.close();
-    showGoogleAuthorizationLink(row, button, result.authorization_url);
+    showGoogleAuthorizationLink(row, button, result.authorization_url, popup);
+    if (popup && !popup.closed) {
+      popup.location.href = result.authorization_url;
+      popup.focus();
+      watchAuthorizationPopup(popup, row, button);
+    }
   };
 
   const syncScheduleToCalendar = async (row, button, popup = null) => {
@@ -5968,6 +6014,7 @@ document.querySelector('[name="ceremony_offerings"]')
     try {
       const result = await window.funeralCloud.googleCalendar(calendarPayload(row));
       popup?.close();
+      stopAuthorizationPopupWatcher();
       removeGoogleAuthorizationLink(button);
       delete button.dataset.googleAuthorizationUrl;
       if (!result?.event_id) throw new Error('Google 未回傳事件編號，請稍後再試。');
@@ -5994,6 +6041,7 @@ document.querySelector('[name="ceremony_offerings"]')
         }
       }
       popup?.close();
+      stopAuthorizationPopupWatcher();
       removeGoogleAuthorizationLink(button);
       delete button.dataset.googleAuthorizationUrl;
       button.classList.add('is-calendar-error');
@@ -6011,7 +6059,12 @@ document.querySelector('[name="ceremony_offerings"]')
     if (!button || button.disabled) return;
     const row = button.closest('tr.schedule-main-row');
     if (!row) return;
-    syncScheduleToCalendar(row, button);
+    if (pendingCalendarSync) {
+      window.alert('請先完成目前的 Google 行事曆授權。');
+      return;
+    }
+    const popup = openAuthorizationPopup();
+    syncScheduleToCalendar(row, button, popup);
   });
 
   window.addEventListener('message', event => {
@@ -6024,7 +6077,9 @@ document.querySelector('[name="ceremony_offerings"]')
 
     const pending = pendingCalendarSync;
     pendingCalendarSync = null;
+    stopAuthorizationPopupWatcher();
     if (!pending) return;
+    pending.popup?.close();
     removeGoogleAuthorizationLink(pending.button);
     delete pending.button.dataset.googleAuthorizationUrl;
     pending.button.disabled = false;

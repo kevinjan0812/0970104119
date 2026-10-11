@@ -163,16 +163,52 @@ Deno.serve(async (request) => {
           .maybeSingle(),
         member.admin
           .from("google_calendar_connections")
-          .select("company_id")
+          .select("company_id, refresh_token_ciphertext, updated_at")
           .eq("company_id", member.companyId)
           .maybeSingle(),
       ]);
       if (configError || connectionError) throw configError || connectionError;
+      let authorizationValid: boolean | null = null;
+      let authorizationCode = "";
+      let authorizationMessage = "";
+      if (connection?.refresh_token_ciphertext) {
+        try {
+          const oauthClient = await loadCompanyGoogleOAuthClient(member.admin, member.companyId, true);
+          const accessToken = await exchangeRefreshToken(
+            await decryptRefreshToken(connection.refresh_token_ciphertext),
+            oauthClient,
+          );
+          const accessResponse = await fetch(`${GOOGLE_EVENTS_URL}?maxResults=1&fields=kind`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (!accessResponse.ok) {
+            const accessResult = await accessResponse.json().catch(() => ({}));
+            const googleMessage = clean((accessResult.error as Record<string, unknown> | undefined)?.message);
+            throw new HttpError(
+              accessResponse.status >= 500 ? 502 : 400,
+              googleMessage || "Google Calendar API 無法使用。",
+              "google_api_unavailable",
+            );
+          }
+          authorizationValid = true;
+        } catch (authorizationError) {
+          authorizationValid = false;
+          authorizationCode = authorizationError instanceof HttpError
+            ? authorizationError.code
+            : "authorization_check_failed";
+          authorizationMessage = authorizationError instanceof Error
+            ? authorizationError.message
+            : "Google 行事曆連線檢查失敗。";
+        }
+      }
       return jsonResponse({
         configured: Boolean(config),
         legacy: !config && Boolean(connection),
         connected: Boolean(connection),
-        updated_at: config?.updated_at || null,
+        authorization_valid: authorizationValid,
+        authorization_code: authorizationCode,
+        authorization_message: authorizationMessage,
+        updated_at: connection?.updated_at || config?.updated_at || null,
         redirect_uri: googleRedirectUri(),
       });
     }

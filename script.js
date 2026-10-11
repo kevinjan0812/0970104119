@@ -6180,3 +6180,46 @@ document.querySelector('[name="ceremony_offerings"]')
   saveButton.setAttribute('form', 'caseForm');
   actions.insertBefore(saveButton, wordExport || actions.firstElementChild);
 })();
+
+// 一般文字欄位使用繁體中文輸入提示，避免切換欄位時被瀏覽器要求英文鍵盤。
+// 日期、時間、電話與純數量欄位仍保留原本的專用輸入模式。
+(() => {
+  const textControlSelector = [
+    'input:not([type])',
+    'input[type="text"]',
+    'input[type="search"]',
+    'textarea'
+  ].join(',');
+  const specializedInputModes = new Set(['numeric', 'decimal', 'tel', 'email', 'url']);
+
+  const configureChineseTextControl = control => {
+    if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return;
+    if (!control.matches(textControlSelector)) return;
+    const currentInputMode = String(control.getAttribute('inputmode') || '').toLowerCase();
+    if (specializedInputModes.has(currentInputMode)) return;
+
+    control.lang = 'zh-Hant-TW';
+    control.inputMode = 'text';
+    control.autocapitalize = 'none';
+    control.spellcheck = false;
+  };
+
+  const configureChineseTextControls = root => {
+    if (root instanceof Element && root.matches(textControlSelector)) {
+      configureChineseTextControl(root);
+    }
+    root.querySelectorAll?.(textControlSelector).forEach(configureChineseTextControl);
+  };
+
+  configureChineseTextControls(document);
+  document.addEventListener('focusin', event => configureChineseTextControl(event.target));
+  new MutationObserver(records => {
+    records.forEach(record => {
+      record.addedNodes.forEach(node => {
+        if (node instanceof Element) configureChineseTextControls(node);
+      });
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+
+  window.prepareChineseTextInputs = () => configureChineseTextControls(document);
+})();

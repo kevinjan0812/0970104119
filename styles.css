@@ -3872,6 +3872,28 @@ html {
   --arrangement-section-line: #dfe2e6;
 }
 
+#basic {
+  --basic-section-soft: #f2f3f5;
+  --basic-section-line: #dfe2e6;
+}
+
+#basic > :is(.form-grid, .block) {
+  margin: 0 -12px;
+  padding: 24px 20px;
+  border: 1px solid #e7eeec;
+  border-radius: 14px;
+  background: #fff;
+}
+
+#basic > :is(.form-grid, .block) + :is(.form-grid, .block) {
+  margin-top: 14px;
+}
+
+#basic > :is(.form-grid, .block):nth-child(odd) {
+  border-color: var(--basic-section-line);
+  background: var(--basic-section-soft);
+}
+
 #arrangement > .block {
   margin: 0 -12px;
   padding: 24px 20px;
@@ -3890,12 +3912,14 @@ html {
 }
 
 @media (max-width: 850px) {
+  #basic > :is(.form-grid, .block),
   #arrangement > .block {
     margin-inline: -8px;
     padding: 20px 14px;
     border-radius: 12px;
   }
 
+  #basic > :is(.form-grid, .block) + :is(.form-grid, .block),
   #arrangement > .block + .block {
     margin-top: 12px;
   }

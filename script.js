@@ -64,6 +64,12 @@ function input(n,type='text',value=''){return `<input type="${type}" ${n?`name="
 function remove(){return '<button type="button" class="btn remove" style="padding:6px 9px">刪除</button>'}
 function lunarText(value){if(!value)return '';try{let normalized=String(value).trim().replaceAll('/','-').split(/[ T]/)[0],roc=normalized.match(/^(\d{3})-(\d{2})-(\d{2})$/);if(roc)normalized=`${Number(roc[1])+1911}-${roc[2]}-${roc[3]}`;let d=new Date(normalized+'T12:00:00');if(Number.isNaN(d.getTime()))return '';let p=new Intl.DateTimeFormat('zh-TW-u-ca-chinese',{year:'numeric',month:'long',day:'numeric'}).formatToParts(d),v=t=>p.find(x=>x.type===t)?.value||'',y=Number(v('relatedYear')||v('year')),m=v('month'),monthMap={正:1,一:1,二:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,十一:11,冬:11,十二:12,臘:12},month=monthMap[String(m).replace('閏','').replace('月','')],day=Number(String(v('day')).replace(/\D/g,'')),leap=String(m).includes('閏')?'閏':'';if(!Number.isFinite(y)||!month||!day)return '';let stems=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'],branches=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'],sexagenaryYear=d.getFullYear()-(d.getMonth()===1&&d.getDate()<4?1:0);return `${stems[(sexagenaryYear-4)%10]}${branches[(sexagenaryYear-4)%12]}年農${leap}${month}/${day}`}catch{return '農曆轉換暫時無法使用'}}
 function syncLunarDates(root=document){root.querySelectorAll('input[type="date"]').forEach(date=>{let note=date.nextElementSibling;if(!note||!note.classList.contains('lunar-note')){note=document.createElement('p');note.className='lunar-note';date.insertAdjacentElement('afterend',note);date.addEventListener('change',()=>syncLunarDates(date.parentElement))}note.textContent=lunarText(date.value);note.classList.toggle('show',!!date.value)})}
+function prefersMobileDateKeyboard(){
+  const coarsePointer=typeof window.matchMedia==='function'&&window.matchMedia('(pointer: coarse)').matches;
+  const mobileAgent=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'');
+  const narrowViewport=window.innerWidth<=820;
+  return coarsePointer||mobileAgent||narrowViewport;
+}
 function configure24HourTimeInput(timeInput, onValueChange = () => {}) {
   if (!timeInput) return;
   timeInput.type = 'text';
@@ -2636,9 +2642,18 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     }
     const yearDigits = 3;
     const digits = rawValue.replace(/\D/g, '').slice(0, yearDigits + 4);
-    if (digits.length <= yearDigits) input.value = digits;
-    else if (digits.length <= yearDigits + 2) input.value = `${digits.slice(0, yearDigits)}/${digits.slice(yearDigits)}`;
-    else input.value = `${digits.slice(0, yearDigits)}/${digits.slice(yearDigits, yearDigits + 2)}/${digits.slice(yearDigits + 2)}`;
+    let formattedValue = digits;
+    if (digits.length > yearDigits && digits.length <= yearDigits + 2) {
+      formattedValue = `${digits.slice(0, yearDigits)}/${digits.slice(yearDigits)}`;
+    } else if (digits.length > yearDigits + 2) {
+      formattedValue = `${digits.slice(0, yearDigits)}/${digits.slice(yearDigits, yearDigits + 2)}/${digits.slice(yearDigits + 2)}`;
+    }
+    if (input.value !== formattedValue) {
+      input.value = formattedValue;
+      if (document.activeElement === input) {
+        input.setSelectionRange(formattedValue.length, formattedValue.length);
+      }
+    }
   };
 
   const isRealDate = value => {
@@ -2684,7 +2699,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     input.placeholder = input.name === 'funeral_date'
       ? '輸入國曆日期，如0690812'
       : 'YYY/MM/DD';
-    input.inputMode = 'numeric';
+    input.inputMode = prefersMobileDateKeyboard() ? 'numeric' : 'text';
     input.maxLength = 9;
     input.minLength = 7;
     input.pattern = '(?:\\d{3}[\\/-]\\d{2}[\\/-]\\d{2}|\\d{7})';
@@ -2720,6 +2735,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
   };
 
   caseForm.addEventListener('input', event => {
+    if (event.isComposing) return;
     if (!isDateInput(event.target)) return;
     formatDateCharacters(event.target);
     validateDate(event.target);
@@ -6206,7 +6222,10 @@ document.querySelector('[name="ceremony_offerings"]')
     }
 
     control.lang = 'zh-Hant-TW';
-    if (control.getAttribute('inputmode') !== 'text') control.inputMode = 'text';
+    const requestedInputMode = control.classList.contains('exact-date-input') && prefersMobileDateKeyboard()
+      ? 'numeric'
+      : 'text';
+    if (control.getAttribute('inputmode') !== requestedInputMode) control.inputMode = requestedInputMode;
     control.autocapitalize = 'none';
     control.spellcheck = false;
   };

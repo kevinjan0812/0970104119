@@ -3866,6 +3866,41 @@ html {
   }
 }
 
+/* 禮儀安排：主要區塊以淡色、白色交錯，方便快速辨識不同工作群組。 */
+#arrangement {
+  --arrangement-section-soft: #f3f8f7;
+  --arrangement-section-line: #d9e8e5;
+}
+
+#arrangement > .block {
+  margin: 0 -12px;
+  padding: 24px 20px;
+  border: 1px solid #e7eeec;
+  border-radius: 14px;
+  background: #fff;
+}
+
+#arrangement > .block + .block {
+  margin-top: 14px;
+}
+
+#arrangement > .block:nth-child(odd) {
+  border-color: var(--arrangement-section-line);
+  background: var(--arrangement-section-soft);
+}
+
+@media (max-width: 850px) {
+  #arrangement > .block {
+    margin-inline: -8px;
+    padding: 20px 14px;
+    border-radius: 12px;
+  }
+
+  #arrangement > .block + .block {
+    margin-top: 12px;
+  }
+}
+
 /* 編輯案件時固定標題、狀態卡片與分頁列，讓長表單捲動時仍可操作。 */
 @media (min-width: 851px) {
   .main {

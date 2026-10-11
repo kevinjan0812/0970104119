@@ -62,6 +62,7 @@
   let activeRole = '';
   let activeReadOnly = false;
   let syncing = false;
+  let lastCloudSyncAt = 0;
   const passwordResetMode = 'reset-password';
   let passwordRecoveryActive =
     new URLSearchParams(window.location.search).get('mode') === passwordResetMode;
@@ -486,6 +487,7 @@
     if (!activeCompanyId || syncing) return;
     syncing = true;
     try {
+      let syncedRecords = [];
       if (activeReadOnly) {
         const { data: readOnlyRows, error: readOnlyError } = await cloud
           .from('cases')
@@ -493,7 +495,12 @@
           .eq('company_id', activeCompanyId)
           .order('updated_at', { ascending: false });
         if (readOnlyError) throw readOnlyError;
-        writeLocalRecords((readOnlyRows || []).map(row => row.payload).filter(Boolean));
+        syncedRecords = (readOnlyRows || []).map(row => row.payload).filter(Boolean);
+        writeLocalRecords(syncedRecords);
+        lastCloudSyncAt = Date.now();
+        window.dispatchEvent(new CustomEvent('funeral:cloud-synced', {
+          detail: { companyId: activeCompanyId, records: syncedRecords.length }
+        }));
         showStatus('唯讀案件已從雲端載入');
         return;
       }
@@ -508,12 +515,17 @@
         .eq('company_id', activeCompanyId)
         .order('updated_at', { ascending: false });
       if (error) throw error;
-      writeLocalRecords(
-        (cloudRows || [])
-          .filter(row => !deleted.has(String(row.case_no)))
-          .map(row => row.payload)
-          .filter(Boolean)
-      );
+      syncedRecords = (cloudRows || [])
+        .filter(row => !deleted.has(String(row.case_no)))
+        .map(row => row.payload)
+        .filter(Boolean);
+      writeLocalRecords(syncedRecords);
+      lastCloudSyncAt = Date.now();
+      // script.js 會在收到此事件後立刻重繪案件列表、月份目錄與到期總覽。
+      // 不能只依賴下次重新整理，否則第一次在另一台電腦開啟時仍會停在舊快取。
+      window.dispatchEvent(new CustomEvent('funeral:cloud-synced', {
+        detail: { companyId: activeCompanyId, records: syncedRecords.length }
+      }));
       showStatus('雲端資料同步完成');
     } catch (error) {
       console.error('Supabase 同步失敗', error);
@@ -1434,6 +1446,16 @@
     }
     initializeSession(data.session);
   });
+
+  const refreshCloudWhenVisible = () => {
+    if (document.visibilityState === 'hidden' || !activeCompanyId) return;
+    // 從背景分頁或瀏覽器返回時重新抓取，讓其他電腦剛存檔的內容能自動出現。
+    // 短時間內的 focus / pageshow 連續事件只需要查詢一次。
+    if (Date.now() - lastCloudSyncAt < 15000) return;
+    loadAndMergeCloud();
+  };
+  document.addEventListener('visibilitychange', refreshCloudWhenVisible);
+  window.addEventListener('pageshow', refreshCloudWhenVisible);
   const invokeGoogleCalendar = async payload => {
     const { data, error } = await cloud.functions.invoke('google-calendar', { body: payload });
     if (error) {

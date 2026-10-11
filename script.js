@@ -976,6 +976,7 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
         target.append(row);
       });
     };
+    window.addEventListener('funeral:cloud-synced', renderList);
     newButton?.addEventListener('click', () => {
       setFormVisible(true);
       formSection.querySelector('.tabs button[data-tab="basic"]')?.click();
@@ -4751,7 +4752,16 @@ document.querySelector('[name="ceremony_offerings"]')
   });
   document.addEventListener('funeral:case-saved', renderArchive);
   document.addEventListener('funeral:case-deleted', renderArchive);
-  window.addEventListener('funeral-cloud-ready', () => window.setTimeout(renderArchive, 500));
+  window.addEventListener('funeral:cloud-synced', () => {
+    const activeMonth = archive.querySelector('.case-archive-month-summary.archive-active');
+    const activeYear = activeMonth?.dataset.year || '';
+    const activeMonthNumber = activeMonth?.dataset.month || '';
+    const monthPageVisible = archiveView.classList.contains('active');
+    renderArchive();
+    if (monthPageVisible && activeYear && activeMonthNumber) {
+      showMonthPage(activeYear, activeMonthNumber);
+    }
+  });
   renderArchive();
 })();
 
@@ -5656,6 +5666,9 @@ document.querySelector('[name="ceremony_offerings"]')
     dueButton.dataset.dueRepairBound = 'true';
     dueButton.addEventListener('click', () => window.setTimeout(showDueOverview, 0));
   }
+  window.addEventListener('funeral:cloud-synced', () => {
+    if (overview?.classList.contains('active')) showDueOverview();
+  });
 
   const lunarText = value => {
     const date = parseDate(value);

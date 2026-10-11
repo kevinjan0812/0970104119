@@ -4962,6 +4962,16 @@ document.querySelector('[name="ceremony_offerings"]')
   addTimeBranch(birthDateField, 'birth_time_branch');
   addTimeBranch(deathDateField, 'death_time_branch');
 
+  // 出生、過世與地址資料獨立成一個區塊，與其他基本資料清楚分隔。
+  const basicPane = document.getElementById('basic');
+  const addressField = basicField('address');
+  if (basicPane && basicGrid && !basicPane.querySelector(':scope > .basic-vital-group')) {
+    const vitalGrid = document.createElement('div');
+    vitalGrid.className = 'form-grid basic-vital-group';
+    [birthDateField, deathDateField, addressField].filter(Boolean).forEach(field => vitalGrid.append(field));
+    basicGrid.after(vitalGrid);
+  }
+
   // 自訂排序使用 Pointer Events，同一套操作同時支援滑鼠、觸控筆與手機觸控。
   const sortableItemForHandle = handle =>
     handle.closest('.row-drag-handle') ? handle.closest('tr') : handle.closest('.sortable-field-row');

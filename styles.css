@@ -3868,8 +3868,8 @@ html {
 
 /* 禮儀安排：主要區塊以淡色、白色交錯，方便快速辨識不同工作群組。 */
 #arrangement {
-  --arrangement-section-soft: #f3f8f7;
-  --arrangement-section-line: #d9e8e5;
+  --arrangement-section-soft: #f2f3f5;
+  --arrangement-section-line: #dfe2e6;
 }
 
 #arrangement > .block {

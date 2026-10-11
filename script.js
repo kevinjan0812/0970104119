@@ -4449,6 +4449,71 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
 
 ;
 
+(() => {
+  const arrangement = document.getElementById('arrangement');
+  if (!arrangement || arrangement.dataset.sectionGroupsReady === 'true') return;
+
+  const directBlocks = [...arrangement.querySelectorAll(':scope > .block')];
+  const suppliesBlock = directBlocks.find(block => block.querySelector('[name="condolence_money"]'));
+  const venueBlock = directBlocks.find(block => block.querySelector('[name="body_care"]'));
+  if (!suppliesBlock || !venueBlock) return;
+
+  const fieldFor = name => arrangement.querySelector(`[name="${name}"]`)?.closest('.field');
+  const createGroup = (className, fields) => {
+    const uniqueFields = [...new Set(fields.filter(Boolean))];
+    if (!uniqueFields.length) return null;
+    const block = document.createElement('div');
+    block.className = `block arrangement-section-group ${className}`;
+    const grid = document.createElement('div');
+    grid.className = 'form-grid';
+    uniqueFields.forEach(field => grid.append(field));
+    block.append(grid);
+    return block;
+  };
+
+  // 骨罐、棺木、擇日與訃聞資料獨立為一區。
+  const coffinGroup = createGroup('arrangement-coffin-group', [
+    fieldFor('coffin_style'),
+    fieldFor('urn_style'),
+    fieldFor('date_selection'),
+    fieldFor('obituary_style'),
+    fieldFor('extra_printing'),
+  ]);
+
+  // 辭生、祭棺及敲棺頭保留為下一個獨立工作區。
+  const riteGroup = createGroup('arrangement-rite-group', [
+    fieldFor('farewell_rite'),
+    fieldFor('coffin_rite'),
+    fieldFor('coffin_tap'),
+  ]);
+  suppliesBlock.after(...[coffinGroup, riteGroup].filter(Boolean));
+  suppliesBlock.querySelectorAll(':scope > .form-grid:empty').forEach(grid => grid.remove());
+
+  // 沐浴更衣、館外接板與壽衣獨立為一區。
+  const careGroup = createGroup('arrangement-care-group', [
+    fieldFor('body_care'),
+    fieldFor('outside_board'),
+    fieldFor('shroud'),
+  ]);
+  if (careGroup) venueBlock.before(careGroup);
+
+  // 大燈、孝杖、小燈、車輛、壓棺用品與陣頭獨立為一區。
+  const logisticsGroup = createGroup('arrangement-logistics-group', [
+    fieldFor('large_lamp'),
+    arrangement.querySelector('.new-filial-staff-field'),
+    fieldFor('small_lamps'),
+    fieldFor('tour_bus'),
+    fieldFor('tower_car'),
+    fieldFor('coffin_items'),
+    fieldFor('procession'),
+  ]);
+  if (logisticsGroup) venueBlock.after(logisticsGroup);
+
+  arrangement.dataset.sectionGroupsReady = 'true';
+})();
+
+;
+
 document.querySelector('[name="ceremony_offerings"]')
     ?.setAttribute('placeholder', '例如：葷三牲X1、豬頭五牲X1');
 

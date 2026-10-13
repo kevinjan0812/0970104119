@@ -1,8 +1,46 @@
 (() => {
+  const bootstrapScreen = document.getElementById('cloudBootstrapScreen');
+  const bootstrapTitle = bootstrapScreen?.querySelector('h1');
+  const bootstrapMessage = bootstrapScreen?.querySelector('[data-cloud-bootstrap-message]');
+  const bootstrapRetry = bootstrapScreen?.querySelector('[data-cloud-bootstrap-retry]');
+  let bootstrapRetryAction = () => window.location.reload();
+  const showBootstrapLoading = (message = '正在連線雲端，完成同步後才會開啟系統。') => {
+    document.body.classList.add('cloud-bootstrap-pending');
+    document.body.setAttribute('aria-busy', 'true');
+    if (!bootstrapScreen) return;
+    bootstrapScreen.hidden = false;
+    bootstrapScreen.classList.remove('is-error');
+    if (bootstrapTitle) bootstrapTitle.textContent = '正在取得最新資料';
+    if (bootstrapMessage) bootstrapMessage.textContent = message;
+    if (bootstrapRetry) bootstrapRetry.hidden = true;
+  };
+  const showBootstrapError = message => {
+    document.body.classList.add('cloud-bootstrap-pending');
+    document.body.setAttribute('aria-busy', 'false');
+    if (!bootstrapScreen) return;
+    bootstrapScreen.hidden = false;
+    bootstrapScreen.classList.add('is-error');
+    if (bootstrapTitle) bootstrapTitle.textContent = '無法取得最新資料';
+    if (bootstrapMessage) bootstrapMessage.textContent = message;
+    if (bootstrapRetry) bootstrapRetry.hidden = false;
+  };
+  const showAuthenticationGate = () => {
+    document.body.classList.add('cloud-bootstrap-pending');
+    document.body.setAttribute('aria-busy', 'false');
+    if (bootstrapScreen) bootstrapScreen.hidden = true;
+  };
+  const revealSyncedApplication = () => {
+    document.body.classList.remove('cloud-bootstrap-pending');
+    document.body.setAttribute('aria-busy', 'false');
+    if (bootstrapScreen) bootstrapScreen.hidden = true;
+  };
+  bootstrapRetry?.addEventListener('click', () => bootstrapRetryAction());
+
   const config = window.SUPABASE_CONFIG;
   const factory = window.supabase?.createClient;
   if (!config?.url || !config?.publishableKey || !factory) {
-    console.warn('Supabase 尚未載入，系統維持本機模式。');
+    console.warn('Supabase 尚未載入，系統暫停開啟。');
+    showBootstrapError('雲端服務尚未載入，無法確認資料是否為最新版本。請檢查網路後重試。');
     return;
   }
 
@@ -62,6 +100,8 @@
   let activeRole = '';
   let activeReadOnly = false;
   let syncing = false;
+  let syncPromise = null;
+  let sessionInitializationId = 0;
   let lastCloudSyncAt = 0;
   const passwordResetMode = 'reset-password';
   let passwordRecoveryActive =
@@ -447,11 +487,11 @@
     sidebar.append(panel);
   };
 
-  const companyForUser = async () => {
+  const companyForUser = async userId => {
     const { data, error } = await cloud
       .from('company_members')
       .select('company_id, role, read_only')
-      .eq('user_id', activeUser.id)
+      .eq('user_id', userId)
       .limit(1)
       .maybeSingle();
     if (error) throw error;
@@ -484,57 +524,66 @@
   };
 
   const loadAndMergeCloud = async () => {
-    if (!activeCompanyId || syncing) return;
+    if (!activeCompanyId) {
+      return { ok: false, error: new Error('尚未取得公司資料。') };
+    }
+    if (syncPromise) return syncPromise;
     syncing = true;
-    try {
-      let syncedRecords = [];
-      if (activeReadOnly) {
-        const { data: readOnlyRows, error: readOnlyError } = await cloud
+    syncPromise = (async () => {
+      try {
+        let syncedRecords = [];
+        if (activeReadOnly) {
+          const { data: readOnlyRows, error: readOnlyError } = await cloud
+            .from('cases')
+            .select('case_no, payload, updated_at')
+            .eq('company_id', activeCompanyId)
+            .order('updated_at', { ascending: false });
+          if (readOnlyError) throw readOnlyError;
+          syncedRecords = (readOnlyRows || []).map(row => row.payload).filter(Boolean);
+          writeLocalRecords(syncedRecords);
+          lastCloudSyncAt = Date.now();
+          window.dispatchEvent(new CustomEvent('funeral:cloud-synced', {
+            detail: { companyId: activeCompanyId, records: syncedRecords.length }
+          }));
+          showStatus('唯讀案件已從雲端載入');
+          return { ok: true, records: syncedRecords.length };
+        }
+        const deleted = readDeletedCaseNumbers();
+        await Promise.all([...deleted].map(async caseNo => {
+          try { await deleteCloudCase(caseNo); }
+          catch (error) { console.warn('案件雲端刪除將於下次同步重試', caseNo, error); }
+        }));
+        const { data: cloudRows, error } = await cloud
           .from('cases')
           .select('case_no, payload, updated_at')
           .eq('company_id', activeCompanyId)
           .order('updated_at', { ascending: false });
-        if (readOnlyError) throw readOnlyError;
-        syncedRecords = (readOnlyRows || []).map(row => row.payload).filter(Boolean);
+        if (error) throw error;
+        syncedRecords = (cloudRows || [])
+          .filter(row => !deleted.has(String(row.case_no)))
+          .map(row => row.payload)
+          .filter(Boolean);
         writeLocalRecords(syncedRecords);
         lastCloudSyncAt = Date.now();
+        // script.js 會在收到此事件後立刻重繪案件列表、月份目錄與到期總覽。
+        // 不能只依賴下次重新整理，否則第一次在另一台電腦開啟時仍會停在舊快取。
         window.dispatchEvent(new CustomEvent('funeral:cloud-synced', {
           detail: { companyId: activeCompanyId, records: syncedRecords.length }
         }));
-        showStatus('唯讀案件已從雲端載入');
-        return;
+        showStatus('雲端資料同步完成');
+        return { ok: true, records: syncedRecords.length };
+      } catch (error) {
+        console.error('Supabase 同步失敗', error);
+        const cachedRecords = readLocalRecords();
+        if (cachedRecords.length) writeDisplayRecords(cachedRecords);
+        showStatus(`雲端同步失敗：${error.message}`, true);
+        return { ok: false, error };
+      } finally {
+        syncing = false;
+        syncPromise = null;
       }
-      const deleted = readDeletedCaseNumbers();
-      await Promise.all([...deleted].map(async caseNo => {
-        try { await deleteCloudCase(caseNo); }
-        catch (error) { console.warn('案件雲端刪除將於下次同步重試', caseNo, error); }
-      }));
-      const { data: cloudRows, error } = await cloud
-        .from('cases')
-        .select('case_no, payload, updated_at')
-        .eq('company_id', activeCompanyId)
-        .order('updated_at', { ascending: false });
-      if (error) throw error;
-      syncedRecords = (cloudRows || [])
-        .filter(row => !deleted.has(String(row.case_no)))
-        .map(row => row.payload)
-        .filter(Boolean);
-      writeLocalRecords(syncedRecords);
-      lastCloudSyncAt = Date.now();
-      // script.js 會在收到此事件後立刻重繪案件列表、月份目錄與到期總覽。
-      // 不能只依賴下次重新整理，否則第一次在另一台電腦開啟時仍會停在舊快取。
-      window.dispatchEvent(new CustomEvent('funeral:cloud-synced', {
-        detail: { companyId: activeCompanyId, records: syncedRecords.length }
-      }));
-      showStatus('雲端資料同步完成');
-    } catch (error) {
-      console.error('Supabase 同步失敗', error);
-      const cachedRecords = readLocalRecords();
-      if (cachedRecords.length) writeDisplayRecords(cachedRecords);
-      showStatus(`雲端同步失敗：${error.message}`, true);
-    } finally {
-      syncing = false;
-    }
+    })();
+    return syncPromise;
   };
 
   const syncLatestLocalRecord = async () => {
@@ -1346,7 +1395,9 @@
   caseListObserver.observe(document.body, { childList: true, subtree: true });
 
   const initializeSession = async session => {
-    activeUser = session?.user || null;
+    const initializationId = ++sessionInitializationId;
+    const sessionUser = session?.user || null;
+    activeUser = sessionUser;
     if (!activeUser) {
       writeDisplayRecords([]);
       activeCompanyId = '';
@@ -1359,28 +1410,49 @@
       document.querySelector('.cloud-staff-management')?.remove();
       document.querySelector('[data-cloud-line-management]')?.remove();
       document.querySelector('.cloud-line-management')?.remove();
+      showAuthenticationGate();
       return;
     }
 
+    showBootstrapLoading('正在驗證帳號並下載公司的最新案件資料…');
     authOverlay.classList.add('cloud-auth-hidden');
     createAccountUi();
     const email = document.querySelector('.cloud-account-email');
     if (email) email.textContent = activeUser.email || '已登入';
     try {
-      const membership = await companyForUser();
+      const membership = await companyForUser(sessionUser.id);
+      if (initializationId !== sessionInitializationId) return;
       activeCompanyId = membership.company_id;
       activeRole = membership.role;
       activeReadOnly = membership.role === 'staff' && membership.read_only === true;
       backupUnscopedRecords();
       writeDisplayRecords(readLocalRecords());
       applyRoleUi();
+      const syncResult = await loadAndMergeCloud();
+      if (initializationId !== sessionInitializationId) return;
+      if (!syncResult?.ok) {
+        showBootstrapError(`無法確認雲端資料是否為最新版本：${syncResult?.error?.message || '同步失敗'}`);
+        return;
+      }
       window.dispatchEvent(new CustomEvent('funeral-cloud-ready', {
         detail: { companyId: activeCompanyId, role: activeRole, readOnly: activeReadOnly }
       }));
-      await loadAndMergeCloud();
+      revealSyncedApplication();
     } catch (error) {
+      if (initializationId !== sessionInitializationId) return;
       showStatus(`雲端初始化失敗：${error.message}`, true);
+      showBootstrapError(`無法完成雲端初始化：${error.message}`);
     }
+  };
+
+  bootstrapRetryAction = async () => {
+    showBootstrapLoading('正在重新連線並確認最新資料…');
+    const { data, error } = await cloud.auth.getSession();
+    if (error) {
+      showBootstrapError(`無法讀取登入狀態：${error.message}`);
+      return;
+    }
+    await initializeSession(data.session);
   };
 
   document.addEventListener('submit', event => {
@@ -1440,18 +1512,26 @@
   cloud.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') {
       passwordRecoveryActive = true;
+      showAuthenticationGate();
       window.setTimeout(() => authUi.showPasswordUpdate(), 0);
       return;
     }
     if (passwordRecoveryActive) return;
     window.setTimeout(() => initializeSession(session), 0);
   });
-  cloud.auth.getSession().then(({ data }) => {
+  cloud.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      showBootstrapError(`無法讀取登入狀態：${error.message}`);
+      return;
+    }
     if (passwordRecoveryActive) {
+      showAuthenticationGate();
       authUi.showPasswordUpdate();
       return;
     }
     initializeSession(data.session);
+  }).catch(error => {
+    showBootstrapError(`無法讀取登入狀態：${error.message}`);
   });
 
   const refreshCloudWhenVisible = () => {

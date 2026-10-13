@@ -5,9 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>禮儀案件管理系統</title>
   
-  <link rel="stylesheet" href="styles.css?v=20261013-location-options-1">
+  <link rel="stylesheet" href="styles.css?v=20261013-cloud-bootstrap-gate-1">
 </head>
-<body>
+<body class="cloud-bootstrap-pending" aria-busy="true">
+<div class="cloud-bootstrap-screen" id="cloudBootstrapScreen" role="status" aria-live="polite">
+  <section class="cloud-bootstrap-card">
+    <div class="cloud-bootstrap-spinner" aria-hidden="true"></div>
+    <h1>正在取得最新資料</h1>
+    <p data-cloud-bootstrap-message>正在連線雲端，完成同步後才會開啟系統。</p>
+    <button type="button" data-cloud-bootstrap-retry hidden>重新同步</button>
+  </section>
+</div>
 <div class="app">
   <aside class="sidebar"><div class="brand">禮儀案件管理<small>協調事項電子化原型 v1.0</small></div><nav class="nav"><button id="newCaseButton" type="button" class="active">＋　新增案件</button><button>▤　案件列表</button><button>▧　行事曆</button><button>▣　廠商管理</button></nav><div class="side-note">這是可離線測試的第一版。資料會暫存在目前瀏覽器；正式上線時可接 Supabase 雲端資料庫與 LINE 官方帳號。</div></aside>
   <main class="main">
@@ -136,7 +144,7 @@
   <script src="script.js?v=20261013-location-options-1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
-<script src="./supabase-integration.js?v=20261011-google-calendar-reauth-1"></script>
+<script src="./supabase-integration.js?v=20261013-cloud-bootstrap-gate-1"></script>
 
 
 </body></html>

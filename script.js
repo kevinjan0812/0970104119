@@ -357,6 +357,8 @@ function applyStoredChoiceValue(targetForm, name, value) {
   return true;
 }
 const OPTIONAL_TEXT_CHOICE_LABELS = {
+  altar_location: '設靈地點',
+  spirit_location: '返主安靈地點',
   towels: '毛巾樣式',
   small_towels: '小方巾樣式',
   bath_towels: '外家浴巾',
@@ -611,7 +613,7 @@ form.addEventListener('change',()=>{markCaseDirty();syncLunarDates();updateMetri
 form.addEventListener('click',event=>{const target=event.target instanceof Element?event.target:null;if(target?.closest('[data-add],.add,.remove'))markCaseDirty()},true);
 form.addEventListener('submit',e=>{e.preventDefault();if(form.reportValidity())save()});
 $('#saveTop').onclick=()=>{if(form.reportValidity())save()};
-$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);window.__loadPaperItems?.([]);window.__loadPaperMoney?.([]);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
+$('#reset').onclick=()=>{if(confirm('確定清除此案件的本機草稿？')){localStorage.removeItem(K);HTMLFormElement.prototype.reset.call(form);syncOptionalTextChoiceStates({});window.__loadPaperItems?.([]);window.__loadPaperMoney?.([]);['contacts','schedules','vendorsTable','ritualsTable'].forEach(t=>$('#'+t+' tbody').innerHTML='');fillDefaults();syncLunarDates();clearCaseDirty();setCaseStatus('輸入中');updateMetrics();flash('已清除草稿')}};
 $('#sample').onclick=()=>{load({fields:{case_name:'王○○府治喪案件',gender:'男',birth_date:'1948-04-12',death_date:'2026-07-20',funeral_date:'2026-07-27',inspection_unit:'桃園市立殯儀館',source:'親友介紹',religion:'佛教',pickup_location:'桃園區住家',altar_location:'桃園市立殯儀館',burial_type:'火化',tower_location:'桃園市○○納骨塔',mourning_dress:'傳統',band:'國樂',band_people:'5',hearse:'中式',body_care:'一般',shroud:'公司'},contacts:[{name:'王大明',relation:'長子',phone:'0912-345-678'}],schedules:[{item:'頭七法事',date:'2026-07-26',time:'09:00',people:'12',note:''}],vendors:vendorItems.map((item,i)=>({item,vendor:i===0?'○○禮儀':'',note:'',notified:i===0,confirmed:false})),rituals:[{item:'頭七法事',vendor:'○○法師',people:'12',note:''}]});markCaseDirty();flash('已載入示範資料')};
 let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else{fillDefaults();clearCaseDirty();setCaseStatus('輸入中')};syncLunarDates();updateMetrics();
 
@@ -1028,6 +1030,7 @@ let existing=localStorage.getItem(K);if(existing)load(JSON.parse(existing));else
       window.__markArchiveCaseActive?.('');
       window.__refreshCurrentCaseWordExport?.();
       HTMLFormElement.prototype.reset.call(form);
+      syncOptionalTextChoiceStates({});
       window.__loadPaperItems?.([]);
       window.__loadPaperMoney?.([]);
       ['contacts','schedules','vendorsTable','ritualsTable','dateSelectionTable'].forEach(id => {
@@ -2621,6 +2624,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
       const control = caseForm.elements[name];
       if (control) control.value = value ?? '';
     });
+    syncOptionalTextChoiceStates(data.fields || {});
     window.__loadPaperItems?.(
       Array.isArray(data.paperItems) ? data.paperItems : data.fields?.paper_offerings
     );
@@ -2645,6 +2649,7 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     updateMetrics();
     window.setTimeout(() => {
       if (typeof window.prepareAllCaseDates === 'function') window.prepareAllCaseDates();
+      window.refreshBasicLunarDates?.();
       window.__refreshVenueLunarLabels?.();
       markCaseSaved();
     }, 0);
@@ -5911,9 +5916,38 @@ document.querySelector('[name="ceremony_offerings"]')
       label.textContent = info ? `${base}（${info.text}）` : base;
     }
   };
-  const refreshAllLabels = () => Object.keys(labels).forEach(name => {
-    const input = document.querySelector(`#basic input[name="${name}"]`);
-    if (input) refreshLabel(input);
+  const birthDateExtra = document.querySelector('#basic input[name="birth_date_extra"]');
+  const birthLunarExtra = document.querySelector('#basic input[name="birth_lunar_extra"]');
+  const refreshBirthExtraLunar = () => {
+    if (!birthDateExtra || !birthLunarExtra) return;
+    const info = lunarForSolar(birthDateExtra.value, true);
+    const currentValue = birthLunarExtra.value.trim();
+    const previousAutoValue = birthLunarExtra.dataset.autoLunarValue || '';
+    let isAutoValue = birthLunarExtra.dataset.autoLunar === 'true';
+    if (isAutoValue && currentValue && currentValue !== previousAutoValue) {
+      isAutoValue = false;
+      birthLunarExtra.dataset.autoLunar = 'false';
+    }
+    if (!info) {
+      if (isAutoValue) birthLunarExtra.value = '';
+      birthLunarExtra.dataset.autoLunarValue = '';
+      return;
+    }
+    if (!currentValue || isAutoValue) {
+      birthLunarExtra.value = info.text;
+      birthLunarExtra.dataset.autoLunar = 'true';
+      birthLunarExtra.dataset.autoLunarValue = info.text;
+    }
+  };
+  const refreshAllLabels = () => {
+    Object.keys(labels).forEach(name => {
+      const input = document.querySelector(`#basic input[name="${name}"]`);
+      if (input) refreshLabel(input);
+    });
+    refreshBirthExtraLunar();
+  };
+  birthLunarExtra?.addEventListener('input', () => {
+    birthLunarExtra.dataset.autoLunar = 'false';
   });
   Object.keys(labels).forEach(name => {
     const input = document.querySelector(`#basic input[name="${name}"]`);

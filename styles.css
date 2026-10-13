@@ -460,7 +460,7 @@ html {
     max-width: 100%;
   }
 
-  #arrangement .optional-text-choice-row {
+  :is(#arrangement, #basic) .optional-text-choice-row {
     box-sizing: border-box;
     width: 100% !important;
     align-items: center;
@@ -469,7 +469,7 @@ html {
     padding: 6px 9px;
   }
 
-  #arrangement .optional-text-choice-row > label {
+  :is(#arrangement, #basic) .optional-text-choice-row > label {
     display: inline-flex;
     align-items: center;
     gap: 3px;
@@ -478,7 +478,7 @@ html {
     white-space: nowrap;
   }
 
-  #arrangement .optional-text-choice-row .option-text-value-control {
+  :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control {
     display: inline-flex;
     align-items: center;
     flex: 1 1 70px;
@@ -492,18 +492,18 @@ html {
     transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
   }
 
-  #arrangement .optional-text-choice-row .option-text-value-control:focus-within {
+  :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control:focus-within {
     border-color: var(--brand);
     background: #fff;
     box-shadow: 0 0 0 3px rgba(25, 122, 110, .13);
   }
 
-  #arrangement .optional-text-choice-row .option-text-value-control:has(input[readonly]) {
+  :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control:has(input[readonly]) {
     background: #f1f5f4;
     border-color: #cbd5e1;
   }
 
-  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input {
+  #caseForm :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control > input {
     box-sizing: border-box;
     flex: 1 1 auto;
     width: 100% !important;
@@ -519,18 +519,18 @@ html {
     box-shadow: none !important;
   }
 
-  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input:focus {
+  #caseForm :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control > input:focus {
     border: 0;
     box-shadow: none;
   }
 
-  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input::placeholder {
+  #caseForm :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control > input::placeholder {
     color: #94a3b8;
     font-weight: 600;
     opacity: 1;
   }
 
-  #caseForm #arrangement .optional-text-choice-row .option-text-value-control > input[readonly] {
+  #caseForm :is(#arrangement, #basic) .optional-text-choice-row .option-text-value-control > input[readonly] {
     color: #64748b;
   }
 
@@ -3631,7 +3631,9 @@ html {
   #basic .date-inline > input:first-child { field-sizing:content; flex:0 1 auto; width:fit-content; min-width:11ch; max-width:14ch; }
   #basic .date-inline.has-lunar-date { display:grid; grid-template-columns:max-content 150px auto; justify-content:start; }
   #basic .date-inline.has-lunar-date > input:first-child { grid-column:1; grid-row:1; field-sizing:content; width:fit-content; min-width:11ch; max-width:14ch; }
-  #basic .basic-lunar-output { grid-column:2; grid-row:1; width:150px; min-width:0; color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
+  #basic .basic-lunar-output { grid-column:2; grid-row:1; width:150px; min-width:0; }
+  #basic .basic-lunar-output,
+  #basic .basic-lunar-extra-input { color:#489e1a; -webkit-text-fill-color:#489e1a; background:#f3faf7; font-weight:800; opacity:1; }
   #basic .basic-date-extra-input { grid-column:1; grid-row:2; width:100%; min-width:11ch; max-width:14ch; }
   #basic .basic-lunar-extra-input { grid-column:2; grid-row:2; width:150px; min-width:0; }
   #basic .date-time-branch { display:flex; grid-column:3; grid-row:1; align-items:center; gap:6px; }

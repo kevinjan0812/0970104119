@@ -95,12 +95,19 @@
   const companyRecordsKey = companyId => `${recordsKey}:company:${companyId}`;
   const deletedCasesKey = companyId => `funeral-case-deleted-v2:company:${companyId}`;
   const unscopedBackupKey = userId => `${recordsKey}:unscoped-backup:${userId}`;
+  const relocationRecordsKey = 'relocation-case-records-v1';
+  const relocationCompanyRecordsKey = companyId => `${relocationRecordsKey}:company:${companyId}`;
+  const relocationUnscopedBackupKey = userId => `${relocationRecordsKey}:unscoped-backup:${userId}`;
+  const relocationMigrationKey = companyId => `${relocationRecordsKey}:cloud-migrated:${companyId}`;
+  const relocationCorruptBackupKey = `${relocationRecordsKey}:corrupt-backup`;
+  const relocationLastKnownGoodKey = `${relocationRecordsKey}:last-known-good`;
   let activeCompanyId = '';
   let activeUser = null;
   let activeRole = '';
   let activeReadOnly = false;
   let syncing = false;
   let syncPromise = null;
+  let relocationSyncPromise = null;
   let sessionInitializationId = 0;
   let lastCloudSyncAt = 0;
   const passwordResetMode = 'reset-password';
@@ -139,6 +146,56 @@
   const writeLocalRecords = records => {
     writeCompanyLocalRecords(records);
     writeDisplayRecords(records);
+  };
+
+  const parseRelocationRecords = key => {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === '') return { records: [], raw, corrupt: false };
+    try {
+      const records = JSON.parse(raw);
+      if (!Array.isArray(records)) throw new Error('資料格式不是案件清單');
+      return { records, raw, corrupt: false };
+    } catch (error) {
+      if (localStorage.getItem(relocationCorruptBackupKey) === null) {
+        localStorage.setItem(relocationCorruptBackupKey, raw);
+      }
+      console.error('遷葬案件本機資料損壞，已保留原始備份。', error);
+      return { records: [], raw, corrupt: true, error };
+    }
+  };
+
+  const readRelocationDisplayState = () => parseRelocationRecords(relocationRecordsKey);
+  const readRelocationCompanyState = () => activeCompanyId
+    ? parseRelocationRecords(relocationCompanyRecordsKey(activeCompanyId))
+    : { records: [], raw: null, corrupt: false };
+  const writeRelocationDisplayRecords = records => {
+    const current = localStorage.getItem(relocationRecordsKey);
+    if (current !== null) {
+      try {
+        if (Array.isArray(JSON.parse(current))) {
+          localStorage.setItem(relocationLastKnownGoodKey, current);
+        }
+      } catch {
+        // 損壞的原始內容已由 parseRelocationRecords 另存，不覆蓋最後一份正常快照。
+      }
+    }
+    localStorage.setItem(relocationRecordsKey, JSON.stringify(records));
+  };
+  const writeRelocationCompanyRecords = records => {
+    if (!activeCompanyId) return;
+    localStorage.setItem(relocationCompanyRecordsKey(activeCompanyId), JSON.stringify(records));
+  };
+  const writeRelocationLocalRecords = records => {
+    writeRelocationCompanyRecords(records);
+    writeRelocationDisplayRecords(records);
+  };
+
+  const backupUnscopedRelocationRecords = () => {
+    if (!activeUser) return;
+    const raw = localStorage.getItem(relocationRecordsKey);
+    if (raw === null) return;
+    const backupKey = relocationUnscopedBackupKey(activeUser.id);
+    if (localStorage.getItem(backupKey) === null) localStorage.setItem(backupKey, raw);
   };
   const backupUnscopedRecords = () => {
     if (!activeUser) return;
@@ -521,6 +578,152 @@
       .upsert(rows, { onConflict: 'company_id,case_no' });
     if (error) throw error;
     rows.forEach(row => clearDeletedCase(row.case_no));
+  };
+
+  const relocationRowFromRecord = record => ({
+    company_id: activeCompanyId,
+    case_no: String(record?.fields?.relocation_case_no || '').trim(),
+    case_name: String(record?.fields?.relocation_case_name || '').trim() || '未命名案件',
+    relocation_date: normalizeDate(record?.fields?.relocation_date) || null,
+    payload: record,
+    updated_by: activeUser?.id || null,
+    deleted_at: null,
+    deleted_by: null
+  });
+
+  const fetchRelocationCloudRows = async () => {
+    const { data, error } = await cloud
+      .from('relocation_cases')
+      .select('case_no, payload, updated_at')
+      .eq('company_id', activeCompanyId)
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  };
+
+  const upsertRelocationRecords = async records => {
+    if (activeReadOnly) throw new Error('此帳號僅可瀏覽，不能新增或修改遷葬案件。');
+    const rows = records
+      .filter(record => String(record?.fields?.relocation_case_no || '').trim())
+      .map(relocationRowFromRecord);
+    if (!rows.length) return;
+    const { error } = await cloud
+      .from('relocation_cases')
+      .upsert(rows, { onConflict: 'company_id,case_no' });
+    if (error) throw error;
+  };
+
+  const notifyRelocationCloudSynced = records => {
+    window.dispatchEvent(new CustomEvent('relocation:cloud-synced', {
+      detail: { companyId: activeCompanyId, records: records.length }
+    }));
+  };
+
+  const loadAndMergeRelocationCloud = async () => {
+    if (!activeCompanyId) return { ok: false, error: new Error('尚未取得公司資料。') };
+    if (relocationSyncPromise) return relocationSyncPromise;
+    relocationSyncPromise = (async () => {
+      try {
+        const displayState = readRelocationDisplayState();
+        const companyState = readRelocationCompanyState();
+        const migrationDone = localStorage.getItem(relocationMigrationKey(activeCompanyId)) === 'true';
+        let cloudRows = await fetchRelocationCloudRows();
+
+        if (!activeReadOnly && !migrationDone && !displayState.corrupt) {
+          const cloudUpdatedByCaseNo = new Map(cloudRows.map(row => [
+            String(row.case_no),
+            Date.parse(row.updated_at || '') || 0
+          ]));
+          const localCandidates = displayState.records.filter(record => {
+            const caseNo = String(record?.fields?.relocation_case_no || '').trim();
+            if (!caseNo) return false;
+            const cloudUpdatedAt = cloudUpdatedByCaseNo.get(caseNo) || 0;
+            const localUpdatedAt = Date.parse(record?.updatedAt || '') || 0;
+            return !cloudUpdatedAt || localUpdatedAt > cloudUpdatedAt;
+          });
+          if (localCandidates.length) {
+            await upsertRelocationRecords(localCandidates);
+            cloudRows = await fetchRelocationCloudRows();
+          }
+          localStorage.setItem(relocationMigrationKey(activeCompanyId), 'true');
+        }
+
+        const records = cloudRows.map(row => row.payload).filter(Boolean);
+        if (records.length || (!displayState.corrupt && !companyState.corrupt)) {
+          writeRelocationLocalRecords(records);
+        }
+        notifyRelocationCloudSynced(records);
+        if (displayState.corrupt) {
+          showStatus('偵測到損壞的遷葬本機資料；原始內容已備份，雲端資料仍可正常使用。', true);
+        }
+        return { ok: true, records: records.length, localCorrupt: displayState.corrupt };
+      } catch (error) {
+        console.error('遷葬案件 Supabase 同步失敗', error);
+        const cachedState = readRelocationCompanyState();
+        if (!cachedState.corrupt && cachedState.records.length) {
+          writeRelocationDisplayRecords(cachedState.records);
+          notifyRelocationCloudSynced(cachedState.records);
+        }
+        return { ok: false, error };
+      } finally {
+        relocationSyncPromise = null;
+      }
+    })();
+    return relocationSyncPromise;
+  };
+
+  const saveRelocationCloudCase = async (record, previousCaseNo = '') => {
+    if (!activeCompanyId) throw new Error('尚未連上公司雲端資料，請重新整理後再試。');
+    if (activeReadOnly) throw new Error('此帳號僅可瀏覽，不能儲存遷葬案件。');
+    const currentCaseNo = String(record?.fields?.relocation_case_no || '').trim();
+    if (!currentCaseNo) throw new Error('請輸入遷葬案件案號。');
+    await upsertRelocationRecords([record]);
+
+    const oldCaseNo = String(previousCaseNo || '').trim();
+    if (oldCaseNo && oldCaseNo !== currentCaseNo) {
+      const timestamp = new Date().toISOString();
+      const { error } = await cloud
+        .from('relocation_cases')
+        .update({
+          deleted_at: timestamp,
+          deleted_by: activeUser?.id || null,
+          updated_by: activeUser?.id || null
+        })
+        .eq('company_id', activeCompanyId)
+        .eq('case_no', oldCaseNo)
+        .is('deleted_at', null);
+      if (error) throw error;
+    }
+
+    const records = (await fetchRelocationCloudRows()).map(row => row.payload).filter(Boolean);
+    writeRelocationLocalRecords(records);
+    notifyRelocationCloudSynced(records);
+    return record;
+  };
+
+  const deleteRelocationCloudCase = async caseNo => {
+    const number = String(caseNo || '').trim();
+    if (!number) throw new Error('找不到遷葬案件案號。');
+    if (!activeCompanyId) throw new Error('尚未連上公司雲端資料，請重新整理後再試。');
+    if (activeReadOnly) throw new Error('此帳號僅可瀏覽，不能刪除遷葬案件。');
+    const timestamp = new Date().toISOString();
+    const { data, error } = await cloud
+      .from('relocation_cases')
+      .update({
+        deleted_at: timestamp,
+        deleted_by: activeUser?.id || null,
+        updated_by: activeUser?.id || null
+      })
+      .eq('company_id', activeCompanyId)
+      .eq('case_no', number)
+      .is('deleted_at', null)
+      .select('case_no');
+    if (error) throw error;
+    if (!data?.length) throw new Error('找不到可刪除的遷葬案件。');
+    const records = (await fetchRelocationCloudRows()).map(row => row.payload).filter(Boolean);
+    writeRelocationLocalRecords(records);
+    notifyRelocationCloudSynced(records);
   };
 
   const loadAndMergeCloud = async () => {
@@ -1426,7 +1629,12 @@
       activeRole = membership.role;
       activeReadOnly = membership.role === 'staff' && membership.read_only === true;
       backupUnscopedRecords();
+      backupUnscopedRelocationRecords();
       writeDisplayRecords(readLocalRecords());
+      const relocationCache = readRelocationCompanyState();
+      if (!relocationCache.corrupt && relocationCache.records.length) {
+        writeRelocationDisplayRecords(relocationCache.records);
+      }
       applyRoleUi();
       const syncResult = await loadAndMergeCloud();
       if (initializationId !== sessionInitializationId) return;
@@ -1434,8 +1642,19 @@
         showBootstrapError(`無法確認雲端資料是否為最新版本：${syncResult?.error?.message || '同步失敗'}`);
         return;
       }
+      const relocationSyncResult = await loadAndMergeRelocationCloud();
+      if (initializationId !== sessionInitializationId) return;
+      if (!relocationSyncResult?.ok) {
+        showBootstrapError(`無法確認遷葬案件是否為最新版本：${relocationSyncResult?.error?.message || '同步失敗'}`);
+        return;
+      }
       window.dispatchEvent(new CustomEvent('funeral-cloud-ready', {
-        detail: { companyId: activeCompanyId, role: activeRole, readOnly: activeReadOnly }
+        detail: {
+          companyId: activeCompanyId,
+          role: activeRole,
+          readOnly: activeReadOnly,
+          relocationRecords: relocationSyncResult.records
+        }
       }));
       revealSyncedApplication();
     } catch (error) {
@@ -1540,6 +1759,7 @@
     // 短時間內的 focus / pageshow 連續事件只需要查詢一次。
     if (Date.now() - lastCloudSyncAt < 15000) return;
     loadAndMergeCloud();
+    loadAndMergeRelocationCloud();
   };
   document.addEventListener('visibilitychange', refreshCloudWhenVisible);
   window.addEventListener('pageshow', refreshCloudWhenVisible);
@@ -1593,6 +1813,14 @@
     },
     get companyId() { return activeCompanyId; },
     get role() { return activeRole; },
+    get readOnly() { return activeReadOnly; }
+  };
+
+  window.relocationCloud = {
+    sync: loadAndMergeRelocationCloud,
+    saveCase: saveRelocationCloudCase,
+    deleteCase: deleteRelocationCloudCase,
+    get companyId() { return activeCompanyId; },
     get readOnly() { return activeReadOnly; }
   };
 })();

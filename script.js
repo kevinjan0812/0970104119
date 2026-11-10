@@ -6695,16 +6695,33 @@ document.querySelector('[name="ceremony_offerings"]')
   }, true);
 
   const relocationRecordsKey = 'relocation-case-records-v1';
+  const relocationLastKnownGoodKey = `${relocationRecordsKey}:last-known-good`;
+  let relocationStorageError = null;
   const readRelocationRecords = () => {
+    const raw = localStorage.getItem(relocationRecordsKey);
+    if (raw === null || raw === '') {
+      relocationStorageError = null;
+      return [];
+    }
     try {
-      const value = JSON.parse(localStorage.getItem(relocationRecordsKey) || '[]');
-      return Array.isArray(value) ? value : [];
-    } catch {
+      const value = JSON.parse(raw);
+      if (!Array.isArray(value)) throw new Error('資料格式不是案件清單');
+      relocationStorageError = null;
+      return value;
+    } catch (error) {
+      relocationStorageError = error;
+      document.body.dataset.relocationStorageStatus = 'corrupt';
       return [];
     }
   };
   const writeRelocationRecords = records => {
+    if (relocationStorageError) {
+      throw new Error('偵測到損壞的遷葬本機資料，已停止覆寫；請先完成雲端同步。');
+    }
+    const current = localStorage.getItem(relocationRecordsKey);
+    if (current !== null) localStorage.setItem(relocationLastKnownGoodKey, current);
     localStorage.setItem(relocationRecordsKey, JSON.stringify(records));
+    document.body.dataset.relocationStorageStatus = 'ok';
   };
   const relocationValue = name => String(relocationForm.elements.namedItem(name)?.value || '').trim();
   const collectRelocationRecord = () => {
@@ -6969,7 +6986,7 @@ document.querySelector('[name="ceremony_offerings"]')
     });
     prepareRelocationDates(relocationForm);
     relocationForm.dataset.editingCaseNo = record?.fields?.relocation_case_no || '';
-    setCaseStatus('已儲存');
+    setCaseStatus('已同步雲端');
   };
 
   const relocationDateParts = value => {
@@ -7053,7 +7070,7 @@ document.querySelector('[name="ceremony_offerings"]')
       deleteButton.type = 'button';
       deleteButton.className = 'btn delete-case';
       deleteButton.textContent = '刪除';
-      deleteButton.addEventListener('click', () => {
+      deleteButton.addEventListener('click', async () => {
         if (window.funeralCloud?.readOnly) {
           window.alert('此帳號僅可瀏覽，不能刪除案件。');
           return;
@@ -7061,19 +7078,21 @@ document.querySelector('[name="ceremony_offerings"]')
         const caseNo = String(fields.relocation_case_no || '').trim();
         const caseName = fields.relocation_case_name || '未命名案件';
         if (!window.confirm(`確定要刪除遷葬案件「${caseNo} ${caseName}」嗎？`)) return;
-        const records = readRelocationRecords();
-        const index = records.findIndex(item =>
-          String(item?.fields?.relocation_case_no || '').trim() === caseNo
-        );
-        if (index < 0) {
-          window.alert('刪除失敗：找不到遷葬案件資料。');
+        if (!window.relocationCloud?.deleteCase) {
+          window.alert('遷葬雲端服務尚未就緒，請重新整理後再試。');
           return;
         }
-        records.splice(index, 1);
-        writeRelocationRecords(records);
-        renderRelocationList();
-        showRelocationMonthPage(year, month);
-        window.flash?.('遷葬案件已刪除。');
+        deleteButton.disabled = true;
+        try {
+          await window.relocationCloud.deleteCase(caseNo);
+          renderRelocationList();
+          showRelocationMonthPage(year, month);
+          window.flash?.('遷葬案件已從雲端刪除，並保留復原紀錄。');
+        } catch (error) {
+          window.alert(`遷葬案件刪除失敗：${error?.message || '雲端連線失敗'}`);
+        } finally {
+          deleteButton.disabled = false;
+        }
       });
 
       const wordButton = document.createElement('button');
@@ -7221,7 +7240,7 @@ document.querySelector('[name="ceremony_offerings"]')
     const headerTitle = document.querySelector('.top h1');
     if (headerTitle) headerTitle.textContent = title;
     if (showFormActions) {
-      setCaseStatus(relocationForm.dataset.editingCaseNo ? '已儲存' : '輸入中');
+      setCaseStatus(relocationForm.dataset.editingCaseNo ? '已同步雲端' : '輸入中');
     }
     view.classList.add('active');
     button.classList.add('active');
@@ -7260,24 +7279,36 @@ document.querySelector('[name="ceremony_offerings"]')
   });
 
   relocationForm.querySelector('.relocation-form-clear')?.addEventListener('click', resetRelocationForm);
-  relocationForm.addEventListener('submit', event => {
+  relocationForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (!relocationForm.reportValidity()) return;
+    if (!window.relocationCloud?.saveCase) {
+      window.alert('遷葬雲端服務尚未就緒，請重新整理後再試。');
+      return;
+    }
     const record = collectRelocationRecord();
-    const records = readRelocationRecords();
     const editingCaseNo = relocationForm.dataset.editingCaseNo || '';
     const currentCaseNo = relocationValue('relocation_case_no');
-    const existingIndex = records.findIndex(item =>
-      String(item?.fields?.relocation_case_no || '') === (editingCaseNo || currentCaseNo)
-    );
-    if (existingIndex >= 0) records[existingIndex] = record;
-    else records.push(record);
-    writeRelocationRecords(records);
-    relocationForm.dataset.editingCaseNo = currentCaseNo;
-    const headerTitle = document.querySelector('.top h1');
-    if (headerTitle) headerTitle.textContent = `編輯遷葬案件｜${relocationValue('relocation_case_name')}`;
-    setCaseStatus('已儲存');
-    window.flash?.('已儲存遷葬案件。');
+    if (relocationSaveButton) relocationSaveButton.disabled = true;
+    setCaseStatus('同步中');
+    try {
+      await window.relocationCloud.saveCase(record, editingCaseNo);
+      relocationForm.dataset.editingCaseNo = currentCaseNo;
+      const headerTitle = document.querySelector('.top h1');
+      if (headerTitle) headerTitle.textContent = `編輯遷葬案件｜${relocationValue('relocation_case_name')}`;
+      setCaseStatus('已同步雲端');
+      window.flash?.('遷葬案件已儲存並同步到雲端。');
+      renderRelocationList();
+    } catch (error) {
+      setCaseStatus('同步失敗');
+      window.alert(`遷葬案件未儲存：${error?.message || '雲端連線失敗'}`);
+    } finally {
+      if (relocationSaveButton) relocationSaveButton.disabled = false;
+    }
+  });
+
+  window.addEventListener('relocation:cloud-synced', () => {
+    readRelocationRecords();
     renderRelocationList();
   });
 

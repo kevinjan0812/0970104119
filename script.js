@@ -586,7 +586,7 @@ function flash(t='已儲存案件草稿'){let s=$('#status');s.textContent=t;s.c
 function setCaseStatus(status){
   const element=$('#caseStatus');
   if(!element)return;
-  const saved=status==='已儲存';
+  const saved=status==='已儲存'||status==='已同步雲端';
   element.textContent=status;
   element.classList.toggle('is-saved',saved);
   element.classList.toggle('is-dirty',!saved);
@@ -6422,8 +6422,8 @@ document.querySelector('[name="ceremony_offerings"]')
 
       <section class="relocation-form-card">
         <div class="relocation-case-identity-row">
-          <label>案號<input name="relocation_case_no" required placeholder="例如：202611005"></label>
-          <label>案名<input name="relocation_case_name" required></label>
+          <label>案號 <span class="required">*</span><input name="relocation_case_no" required placeholder="例如：202611005"></label>
+          <label>案名 <span class="required">*</span><input name="relocation_case_name" required></label>
         </div>
         <div class="table-wrap relocation-contact-wrap">
           <table class="relocation-document-table relocation-contact-table">
@@ -6544,6 +6544,39 @@ document.querySelector('[name="ceremony_offerings"]')
   formSection.before(relocationNewView, relocationListView);
 
   const relocationForm = relocationNewView.querySelector('#relocationCaseForm');
+  let hasUnsavedRelocationChanges = false;
+  const markRelocationDirty = () => {
+    hasUnsavedRelocationChanges = true;
+    setCaseStatus('輸入中');
+  };
+  const clearRelocationDirty = () => {
+    hasUnsavedRelocationChanges = false;
+  };
+  const confirmDiscardUnsavedRelocation = () => {
+    if (!hasUnsavedRelocationChanges) return true;
+    const shouldLeave = window.confirm('此遷葬案件尚未同步雲端，確定要離開嗎？');
+    if (shouldLeave) clearRelocationDirty();
+    return shouldLeave;
+  };
+  window.addEventListener('beforeunload', event => {
+    if (!hasUnsavedRelocationChanges) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+  document.addEventListener('click', event => {
+    if (!hasUnsavedRelocationChanges || !relocationNewView.classList.contains('active')) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || target.closest('.relocation-form-tabs, .relocation-form-save, .relocation-word-export')) return;
+    const navigationTarget = target.closest([
+      '.sidebar .nav button',
+      '.sidebar .nav summary',
+      '.case-archive-case-button',
+      '.case-archive-month-summary'
+    ].join(','));
+    if (!navigationTarget || confirmDiscardUnsavedRelocation()) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
   const relocationFormTabs = [...relocationForm.querySelectorAll('[data-relocation-form-tab]')];
   const relocationFormPanels = [...relocationForm.querySelectorAll('[data-relocation-form-panel]')];
   const showRelocationFormTab = name => {
@@ -6576,6 +6609,61 @@ document.querySelector('[name="ceremony_offerings"]')
     root.querySelectorAll?.(relocationDateInputSelector).forEach(prepareRelocationDateInput);
   };
   prepareRelocationDates(relocationForm);
+  const relocationTimeInputs = [...relocationForm.querySelectorAll('.relocation-time-digits')];
+  const validateRelocationTime = input => {
+    const digits = String(input?.value || '').replace(/\D/g, '');
+    const valid = !digits || (
+      /^\d{4}$/.test(digits) &&
+      Number(digits.slice(0, 2)) <= 23 &&
+      Number(digits.slice(2)) <= 59
+    );
+    input?.setCustomValidity(valid ? '' : '請輸入四位數 24 小時制時間，例如 0930');
+    return valid;
+  };
+  const showRelocationGuardMessage = message => {
+    const status = document.getElementById('status');
+    if (!status) return;
+    status.textContent = message;
+    status.style.background = '#9f2d2d';
+    status.classList.add('show');
+    window.setTimeout(() => {
+      status.classList.remove('show');
+      status.style.background = '';
+    }, 3000);
+  };
+  const validateRelocationForm = () => {
+    let firstInvalid = null;
+    relocationForm.querySelectorAll(relocationDateInputSelector).forEach(input => {
+      window.__formatExactDateInput?.(input);
+      if (window.__validateExactDateInput?.(input) === false && !firstInvalid) firstInvalid = input;
+    });
+    relocationTimeInputs.forEach(input => {
+      if (!validateRelocationTime(input) && !firstInvalid) firstInvalid = input;
+    });
+    if (firstInvalid) {
+      showRelocationFormTab('basic');
+      firstInvalid.reportValidity();
+      firstInvalid.focus();
+      showRelocationGuardMessage('請檢查日期或時間格式');
+      return false;
+    }
+    const missing = [
+      [relocationForm.elements.relocation_case_no, '案號'],
+      [relocationForm.elements.relocation_case_name, '案名']
+    ].filter(([input]) => !String(input?.value || '').trim());
+    if (missing.length) {
+      showRelocationFormTab('basic');
+      missing[0][0]?.focus();
+      showRelocationGuardMessage(`請先填寫${missing.map(([, label]) => label).join('與')}`);
+      return false;
+    }
+    if (!relocationForm.reportValidity()) {
+      showRelocationFormTab('basic');
+      showRelocationGuardMessage('請檢查必填欄位');
+      return false;
+    }
+    return true;
+  };
   const lunarFromRelocationSolar = value => {
     const match = String(value || '').trim().match(/^(\d{3}|\d{4})[/-](\d{2})[/-](\d{2})$/);
     if (!match) return '';
@@ -6596,11 +6684,17 @@ document.querySelector('[name="ceremony_offerings"]')
     ['title', 'name', 'birth', 'death'].forEach(field => {
       row.querySelector(`[data-ancestor-field="${field}"]`).value = person[field] || '';
     });
-    row.querySelector('.relocation-ancestor-remove').addEventListener('click', () => row.remove());
+    row.querySelector('.relocation-ancestor-remove').addEventListener('click', () => {
+      row.remove();
+      markRelocationDirty();
+    });
     relocationAncestorBody.append(row);
   };
   relocationForm.querySelector('.relocation-ancestor-add')
-    ?.addEventListener('click', () => addRelocationAncestorRow());
+    ?.addEventListener('click', () => {
+      addRelocationAncestorRow();
+      markRelocationDirty();
+    });
   const relocationFamilyBody = relocationForm.querySelector('.relocation-family-table tbody');
   const addRelocationFamilyRow = (person = {}) => {
     const row = document.createElement('tr');
@@ -6648,13 +6742,19 @@ document.querySelector('[name="ceremony_offerings"]')
       if (!lunarInput.value.trim()) updateLunarFromSolar();
       refreshLunarAppearance();
     });
-    row.querySelector('.relocation-family-remove').addEventListener('click', () => row.remove());
+    row.querySelector('.relocation-family-remove').addEventListener('click', () => {
+      row.remove();
+      markRelocationDirty();
+    });
     relocationFamilyBody.append(row);
     prepareRelocationDates(row);
     if (!initialManual) updateLunarFromSolar();
     refreshLunarAppearance();
   };
-  relocationForm.querySelector('.relocation-family-add')?.addEventListener('click', () => addRelocationFamilyRow());
+  relocationForm.querySelector('.relocation-family-add')?.addEventListener('click', () => {
+    addRelocationFamilyRow();
+    markRelocationDirty();
+  });
   const setKinshipHighlight = (person, highlighted) => {
     person.classList.toggle('is-highlighted', highlighted);
     const button = person.querySelector('.relocation-kinship-highlight');
@@ -6668,11 +6768,11 @@ document.querySelector('[name="ceremony_offerings"]')
       const person = button.closest('[data-kinship-person]');
       if (!person) return;
       setKinshipHighlight(person, !person.classList.contains('is-highlighted'));
-      setCaseStatus('輸入中');
+      markRelocationDirty();
     });
   });
   relocationForm.addEventListener('input', event => {
-    setCaseStatus('輸入中');
+    markRelocationDirty();
     const dateInput = event.target instanceof HTMLInputElement && event.target.matches(relocationDateInputSelector)
       ? event.target
       : null;
@@ -6686,11 +6786,15 @@ document.querySelector('[name="ceremony_offerings"]')
     const maximumLength = input.classList.contains('relocation-kinship-count') ? 3 : 4;
     const digits = input.value.replace(/\D/g, '').slice(0, maximumLength);
     if (input.value !== digits) input.value = digits;
+    if (input.classList.contains('relocation-time-digits')) validateRelocationTime(input);
   });
-  relocationForm.addEventListener('change', () => setCaseStatus('輸入中'));
+  relocationForm.addEventListener('change', markRelocationDirty);
   relocationForm.addEventListener('blur', event => {
     if (event.target instanceof HTMLInputElement && event.target.matches(relocationDateInputSelector)) {
       window.__validateExactDateInput?.(event.target);
+    }
+    if (event.target instanceof HTMLInputElement && event.target.classList.contains('relocation-time-digits')) {
+      validateRelocationTime(event.target);
     }
   }, true);
 
@@ -6906,6 +7010,27 @@ document.querySelector('[name="ceremony_offerings"]')
   const relocationTopActions = document.createElement('div');
   relocationTopActions.className = 'relocation-top-actions';
   const relocationSaveButton = relocationForm.querySelector('.relocation-form-save');
+  const showRelocationSaveFeedback = state => {
+    if (!relocationSaveButton) return;
+    if (!relocationSaveButton.dataset.defaultLabel) {
+      relocationSaveButton.dataset.defaultLabel = relocationSaveButton.textContent.trim();
+    }
+    if (relocationSaveButton.__saveFeedbackTimer) {
+      window.clearTimeout(relocationSaveButton.__saveFeedbackTimer);
+    }
+    relocationSaveButton.classList.remove('is-saving', 'is-saved', 'is-save-error');
+    if (state === 'saving') {
+      relocationSaveButton.classList.add('is-saving');
+      relocationSaveButton.textContent = '儲存中…';
+      return;
+    }
+    relocationSaveButton.classList.add(state === 'saved' ? 'is-saved' : 'is-save-error');
+    relocationSaveButton.textContent = state === 'saved' ? '已同步 ✓' : '請檢查欄位';
+    relocationSaveButton.__saveFeedbackTimer = window.setTimeout(() => {
+      relocationSaveButton.classList.remove('is-saving', 'is-saved', 'is-save-error');
+      relocationSaveButton.textContent = relocationSaveButton.dataset.defaultLabel || '儲存案件';
+    }, 3000);
+  };
   const relocationWordButton = document.createElement('button');
   relocationWordButton.type = 'button';
   relocationWordButton.className = 'btn export-word-case relocation-word-export';
@@ -6917,7 +7042,11 @@ document.querySelector('[name="ceremony_offerings"]')
   }
   topActions?.append(relocationTopActions);
   relocationWordButton.addEventListener('click', () => {
-    if (!relocationForm.reportValidity()) return;
+    if (hasUnsavedRelocationChanges) {
+      window.alert('目前有尚未同步雲端的修改，請先按「儲存案件」再匯出 Word。');
+      return;
+    }
+    if (!validateRelocationForm()) return;
     downloadRelocationWord(collectRelocationRecord());
   });
 
@@ -6928,6 +7057,8 @@ document.querySelector('[name="ceremony_offerings"]')
     relocationAncestorBody.replaceChildren();
     relocationFamilyBody.replaceChildren();
     relocationForm.dataset.editingCaseNo = '';
+    relocationTimeInputs.forEach(input => input.setCustomValidity(''));
+    clearRelocationDirty();
     showRelocationFormTab('basic');
   };
 
@@ -6986,6 +7117,7 @@ document.querySelector('[name="ceremony_offerings"]')
     });
     prepareRelocationDates(relocationForm);
     relocationForm.dataset.editingCaseNo = record?.fields?.relocation_case_no || '';
+    clearRelocationDirty();
     setCaseStatus('已同步雲端');
   };
 
@@ -7278,29 +7410,55 @@ document.querySelector('[name="ceremony_offerings"]')
     }
   });
 
-  relocationForm.querySelector('.relocation-form-clear')?.addEventListener('click', resetRelocationForm);
+  relocationForm.querySelector('.relocation-form-clear')?.addEventListener('click', () => {
+    if (
+      hasUnsavedRelocationChanges &&
+      !window.confirm('確定要清除此遷葬案件尚未同步的內容嗎？')
+    ) return;
+    resetRelocationForm();
+    setCaseStatus('輸入中');
+    window.flash?.('已清除遷葬案件內容');
+  });
   relocationForm.addEventListener('submit', async event => {
     event.preventDefault();
-    if (!relocationForm.reportValidity()) return;
+    if (!validateRelocationForm()) {
+      showRelocationSaveFeedback('error');
+      return;
+    }
     if (!window.relocationCloud?.saveCase) {
       window.alert('遷葬雲端服務尚未就緒，請重新整理後再試。');
+      showRelocationSaveFeedback('error');
       return;
     }
     const record = collectRelocationRecord();
     const editingCaseNo = relocationForm.dataset.editingCaseNo || '';
     const currentCaseNo = relocationValue('relocation_case_no');
+    const duplicateRecord = readRelocationRecords().find(item => {
+      const savedCaseNo = String(item?.fields?.relocation_case_no || '').trim();
+      return savedCaseNo === currentCaseNo && savedCaseNo !== editingCaseNo;
+    });
+    if (duplicateRecord) {
+      window.alert(`案號「${currentCaseNo}」已存在，請從案件列表開啟原案件編輯，或更換案號。`);
+      relocationForm.elements.relocation_case_no?.focus();
+      showRelocationSaveFeedback('error');
+      return;
+    }
     if (relocationSaveButton) relocationSaveButton.disabled = true;
+    showRelocationSaveFeedback('saving');
     setCaseStatus('同步中');
     try {
       await window.relocationCloud.saveCase(record, editingCaseNo);
       relocationForm.dataset.editingCaseNo = currentCaseNo;
       const headerTitle = document.querySelector('.top h1');
       if (headerTitle) headerTitle.textContent = `編輯遷葬案件｜${relocationValue('relocation_case_name')}`;
+      clearRelocationDirty();
       setCaseStatus('已同步雲端');
+      showRelocationSaveFeedback('saved');
       window.flash?.('遷葬案件已儲存並同步到雲端。');
       renderRelocationList();
     } catch (error) {
       setCaseStatus('同步失敗');
+      showRelocationSaveFeedback('error');
       window.alert(`遷葬案件未儲存：${error?.message || '雲端連線失敗'}`);
     } finally {
       if (relocationSaveButton) relocationSaveButton.disabled = false;

@@ -2510,6 +2510,53 @@ html {
   border-top: 1px solid #94a3b8;
 }
 
+.relocation-kinship-highlight {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  min-height: 25px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  line-height: 1;
+  opacity: .38;
+  cursor: pointer;
+}
+
+.relocation-kinship-person:hover .relocation-kinship-highlight,
+.relocation-kinship-person:focus-within .relocation-kinship-highlight,
+.relocation-kinship-person.is-highlighted .relocation-kinship-highlight {
+  opacity: 1;
+}
+
+.relocation-kinship-highlight:hover,
+.relocation-kinship-highlight:focus-visible {
+  background: #fff4c2;
+  color: #b45309;
+  outline: 2px solid #f6c84f;
+  outline-offset: 1px;
+}
+
+.relocation-kinship-person.is-highlighted input[data-kinship-field="name"] {
+  background: #fff1a8;
+  color: #9a4d00;
+  font-weight: 800;
+}
+
+.relocation-kinship-person.is-highlighted .relocation-kinship-highlight {
+  background: #f6c84f;
+  color: #7c3f00;
+}
+
 .relocation-kinship-generation:not(:last-child) .relocation-kinship-person::after,
 .relocation-kinship-generation:last-child .relocation-kinship-person:nth-child(5)::after {
   position: absolute;
@@ -2798,36 +2845,59 @@ html {
 }
 
 .relocation-family-table {
-  width: min(100%, 650px);
-  min-width: 0;
+  width: min(100%, 820px);
+  min-width: 700px;
   table-layout: fixed;
 }
 
 .relocation-family-wrap {
-  width: min(100%, 650px);
-  overflow: hidden;
+  width: min(100%, 820px);
 }
 
-.relocation-family-table th:nth-child(1) {
-  width: 19%;
-}
-
-.relocation-family-table th:nth-child(2) {
-  width: 27%;
-}
-
-.relocation-family-table th:nth-child(3) {
-  width: 40%;
-}
-
-.relocation-family-table th:nth-child(4) {
-  width: 14%;
-}
+.relocation-family-table col:nth-child(1) { width: 12%; }
+.relocation-family-table col:nth-child(2) { width: 16%; }
+.relocation-family-table col:nth-child(3),
+.relocation-family-table col:nth-child(4) { width: 29%; }
+.relocation-family-table col:nth-child(5) { width: 14%; }
 
 .relocation-family-remove {
   width: 100%;
   padding: 7px 5px;
   font-size: 13px;
+}
+
+.relocation-family-table .birth-cell {
+  padding: 8px;
+}
+
+.relocation-family-date-field {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.relocation-family-date-field > span {
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-height: 46px;
+  border: 1px solid #cbd5d3;
+  border-radius: 6px;
+  background: #e4efed;
+  color: #274743;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.relocation-family-table [data-family-field="lunarBirth"] {
+  color: #489e1a;
+  -webkit-text-fill-color: #489e1a;
+  font-weight: 800;
+}
+
+.relocation-family-table [data-family-field="lunarBirth"].manual-lunar-value {
+  background: #f3faf0;
 }
 
 .relocation-family-add {
@@ -2849,10 +2919,10 @@ html {
   width: min(100%, 820px);
 }
 
-.relocation-ancestor-table th:nth-child(1) { width: 16%; }
-.relocation-ancestor-table th:nth-child(2) { width: 24%; }
+.relocation-ancestor-table th:nth-child(1) { width: 12%; }
+.relocation-ancestor-table th:nth-child(2) { width: 16%; }
 .relocation-ancestor-table th:nth-child(3),
-.relocation-ancestor-table th:nth-child(4) { width: 23%; }
+.relocation-ancestor-table th:nth-child(4) { width: 29%; }
 .relocation-ancestor-table th:nth-child(5) { width: 14%; }
 
 .relocation-ancestor-remove {
@@ -2864,6 +2934,11 @@ html {
 .relocation-ancestor-add {
   justify-self: start;
   margin-top: -2px;
+}
+
+.relocation-ancestor-table input,
+.relocation-family-table input {
+  text-align: center;
 }
 
 .relocation-form-actions {

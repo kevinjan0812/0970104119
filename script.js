@@ -6485,7 +6485,8 @@ document.querySelector('[name="ceremony_offerings"]')
         <h2>家屬</h2>
         <div class="table-wrap relocation-family-wrap">
           <table class="relocation-document-table relocation-family-table">
-            <thead><tr><th>稱謂</th><th>姓名</th><th>出生日期</th><th aria-label="操作"></th></tr></thead>
+            <colgroup><col><col><col><col><col></colgroup>
+            <thead><tr><th>稱謂</th><th>姓名</th><th colspan="2">出生日期</th><th aria-label="操作"></th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -6513,6 +6514,7 @@ document.querySelector('[name="ceremony_offerings"]')
                         <div class="relocation-kinship-person" data-kinship-person="${personIndex}">
                           <input data-kinship-field="relation" aria-label="第 ${generationIndex + 1} 代第 ${columnIndex + 1} 位關係或稱謂">
                           <input data-kinship-field="name" aria-label="第 ${generationIndex + 1} 代第 ${columnIndex + 1} 位姓名">
+                          <button type="button" class="relocation-kinship-highlight" aria-label="標註第 ${generationIndex + 1} 代第 ${columnIndex + 1} 位姓名" aria-pressed="false" title="標註此姓名">★</button>
                         </div>
                       `;
                     }).join('')}
@@ -6527,7 +6529,6 @@ document.querySelector('[name="ceremony_offerings"]')
 
               <div class="relocation-kinship-statement">
                 <p>以上申請起掘共 <input class="relocation-kinship-count" data-kinship-count inputmode="numeric" pattern="[0-9]*" maxlength="3" aria-label="申請起掘人數"> 位，確係為本人親屬，且填寫內容確實無訛，如有偽造、冒名或嗣後有第三人提出異議或主張時，概與貴管理所無涉，本人願負一切法律責任。</p>
-                <p>此致　桃園市政府殯葬管理所</p>
                 <label>具結人：<input data-kinship-declarant aria-label="具結人姓名"><span>（簽名或蓋章）</span></label>
               </div>
             </div>
@@ -6575,6 +6576,12 @@ document.querySelector('[name="ceremony_offerings"]')
     root.querySelectorAll?.(relocationDateInputSelector).forEach(prepareRelocationDateInput);
   };
   prepareRelocationDates(relocationForm);
+  const lunarFromRelocationSolar = value => {
+    const match = String(value || '').trim().match(/^(\d{3}|\d{4})[/-](\d{2})[/-](\d{2})$/);
+    if (!match) return '';
+    const year = Number(match[1]) + (match[1].length === 3 ? 1911 : 0);
+    return lunarText(`${year}-${match[2]}-${match[3]}`);
+  };
   const relocationAncestorBody = relocationForm.querySelector('.relocation-ancestor-table tbody');
   const addRelocationAncestorRow = (person = {}) => {
     const row = document.createElement('tr');
@@ -6602,10 +6609,14 @@ document.querySelector('[name="ceremony_offerings"]')
       <td><input data-family-field="title" aria-label="家屬稱謂"></td>
       <td><input data-family-field="name" aria-label="家屬姓名"></td>
       <td class="birth-cell">
-        <table class="life-mini-table"><tbody>
-          <tr><th>農</th><td><input data-family-field="lunarBirth" aria-label="家屬農曆出生日期"></td></tr>
-          <tr><th>國</th><td><input data-family-field="solarBirth" placeholder="YYY/MM/DD" aria-label="家屬國曆出生日期"></td></tr>
-        </tbody></table>
+        <div class="relocation-family-date-field">
+          <span>國</span><input data-family-field="solarBirth" placeholder="YYY/MM/DD" aria-label="家屬國曆出生日期">
+        </div>
+      </td>
+      <td class="birth-cell">
+        <div class="relocation-family-date-field">
+          <span>農</span><input data-family-field="lunarBirth" aria-label="家屬農曆出生日期">
+        </div>
       </td>
       <td><button type="button" class="btn remove relocation-family-remove">刪除</button></td>
     `;
@@ -6613,11 +6624,53 @@ document.querySelector('[name="ceremony_offerings"]')
     row.querySelector('[data-family-field="name"]').value = person.name || '';
     row.querySelector('[data-family-field="lunarBirth"]').value = person.lunarBirth || '';
     row.querySelector('[data-family-field="solarBirth"]').value = person.solarBirth || person.birthDate || '';
+    const lunarInput = row.querySelector('[data-family-field="lunarBirth"]');
+    const solarInput = row.querySelector('[data-family-field="solarBirth"]');
+    const expectedLunar = lunarFromRelocationSolar(solarInput.value);
+    const initialManual = typeof person.lunarManual === 'boolean'
+      ? person.lunarManual
+      : Boolean(lunarInput.value.trim() && lunarInput.value.trim() !== expectedLunar);
+    row.dataset.lunarManual = String(initialManual);
+    const refreshLunarAppearance = () => {
+      const manual = row.dataset.lunarManual === 'true' && Boolean(lunarInput.value.trim());
+      lunarInput.classList.toggle('manual-lunar-value', manual);
+      lunarInput.title = manual ? '人工輸入的農曆日期，國曆變更時將保留此內容' : '依國曆日期自動換算';
+    };
+    const updateLunarFromSolar = () => {
+      if (row.dataset.lunarManual === 'true') return;
+      lunarInput.value = lunarFromRelocationSolar(solarInput.value);
+      refreshLunarAppearance();
+    };
+    solarInput.addEventListener('input', () => window.setTimeout(updateLunarFromSolar, 0));
+    solarInput.addEventListener('change', () => window.setTimeout(updateLunarFromSolar, 0));
+    lunarInput.addEventListener('input', () => {
+      row.dataset.lunarManual = String(Boolean(lunarInput.value.trim()));
+      if (!lunarInput.value.trim()) updateLunarFromSolar();
+      refreshLunarAppearance();
+    });
     row.querySelector('.relocation-family-remove').addEventListener('click', () => row.remove());
     relocationFamilyBody.append(row);
     prepareRelocationDates(row);
+    if (!initialManual) updateLunarFromSolar();
+    refreshLunarAppearance();
   };
   relocationForm.querySelector('.relocation-family-add')?.addEventListener('click', () => addRelocationFamilyRow());
+  const setKinshipHighlight = (person, highlighted) => {
+    person.classList.toggle('is-highlighted', highlighted);
+    const button = person.querySelector('.relocation-kinship-highlight');
+    if (button) {
+      button.setAttribute('aria-pressed', String(highlighted));
+      button.title = highlighted ? '取消姓名標註' : '標註此姓名';
+    }
+  };
+  relocationForm.querySelectorAll('.relocation-kinship-highlight').forEach(button => {
+    button.addEventListener('click', () => {
+      const person = button.closest('[data-kinship-person]');
+      if (!person) return;
+      setKinshipHighlight(person, !person.classList.contains('is-highlighted'));
+      setCaseStatus('輸入中');
+    });
+  });
   relocationForm.addEventListener('input', event => {
     setCaseStatus('輸入中');
     const dateInput = event.target instanceof HTMLInputElement && event.target.matches(relocationDateInputSelector)
@@ -6677,12 +6730,19 @@ document.querySelector('[name="ceremony_offerings"]')
     }).filter(person => Object.values(person).some(Boolean));
     const family = [...relocationFamilyBody.querySelectorAll('[data-family-row]')].map(row => {
       const get = field => String(row.querySelector(`[data-family-field="${field}"]`)?.value || '').trim();
-      return { title: get('title'), name: get('name'), lunarBirth: get('lunarBirth'), solarBirth: get('solarBirth') };
+      return {
+        title: get('title'),
+        name: get('name'),
+        lunarBirth: get('lunarBirth'),
+        solarBirth: get('solarBirth'),
+        lunarManual: row.dataset.lunarManual === 'true'
+      };
     }).filter(person => Object.values(person).some(Boolean));
     const kinship = {
       people: [...relocationForm.querySelectorAll('[data-kinship-person]')].map(person => ({
         relation: String(person.querySelector('[data-kinship-field="relation"]')?.value || '').trim(),
-        name: String(person.querySelector('[data-kinship-field="name"]')?.value || '').trim()
+        name: String(person.querySelector('[data-kinship-field="name"]')?.value || '').trim(),
+        highlighted: person.classList.contains('is-highlighted')
       })),
       applicant: String(relocationForm.querySelector('[data-kinship-applicant]')?.value || '').trim(),
       excavationCount: String(relocationForm.querySelector('[data-kinship-count]')?.value || '').trim(),
@@ -6846,6 +6906,8 @@ document.querySelector('[name="ceremony_offerings"]')
 
   const resetRelocationForm = () => {
     relocationForm.reset();
+    relocationForm.querySelectorAll('[data-kinship-person]')
+      .forEach(person => setKinshipHighlight(person, false));
     relocationAncestorBody.replaceChildren();
     relocationFamilyBody.replaceChildren();
     relocationForm.dataset.editingCaseNo = '';
@@ -6894,6 +6956,7 @@ document.querySelector('[name="ceremony_offerings"]')
       const savedPerson = record?.kinship?.people?.[index] || {};
       person.querySelector('[data-kinship-field="relation"]').value = savedPerson.relation || '';
       person.querySelector('[data-kinship-field="name"]').value = savedPerson.name || '';
+      setKinshipHighlight(person, savedPerson.highlighted === true);
     });
     const kinshipFields = {
       '[data-kinship-applicant]': record?.kinship?.applicant,

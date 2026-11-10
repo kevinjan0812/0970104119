@@ -4,3 +4,6 @@
 # Windows 產生的系統檔。
 Thumbs.db
 Desktop.ini
+
+# Codex 產生的 Word 範本渲染與版面驗證暫存檔。
+.codex-docx-relocation/

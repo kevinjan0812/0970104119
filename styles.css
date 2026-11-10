@@ -1233,7 +1233,8 @@ html {
     }
   }
 
-#caseForm .exact-date-input.date-invalid {
+#caseForm .exact-date-input.date-invalid,
+#relocationCaseForm .exact-date-input.date-invalid {
     border-color: #c73d3d !important;
     box-shadow: 0 0 0 3px #c73d3d1c !important;
     background: #fffafa;
@@ -2390,6 +2391,10 @@ html {
   margin: -2px 0 8px 20px;
 }
 
+.relocation-service-group .case-archive-navigation {
+  margin: -2px 0 8px 20px;
+}
+
 .relocation-service-view {
   display: none;
   min-height: 430px;
@@ -2829,6 +2834,38 @@ html {
   margin-top: 4px;
 }
 
+.relocation-ancestor-card {
+  display: grid;
+  gap: 14px;
+}
+
+.relocation-ancestor-table {
+  width: min(100%, 820px);
+  min-width: 700px;
+  table-layout: fixed;
+}
+
+.relocation-ancestor-wrap {
+  width: min(100%, 820px);
+}
+
+.relocation-ancestor-table th:nth-child(1) { width: 16%; }
+.relocation-ancestor-table th:nth-child(2) { width: 24%; }
+.relocation-ancestor-table th:nth-child(3),
+.relocation-ancestor-table th:nth-child(4) { width: 23%; }
+.relocation-ancestor-table th:nth-child(5) { width: 14%; }
+
+.relocation-ancestor-remove {
+  width: 100%;
+  padding: 7px 5px;
+  font-size: 13px;
+}
+
+.relocation-ancestor-add {
+  justify-self: start;
+  margin-top: -2px;
+}
+
 .relocation-form-actions {
   display: flex;
   justify-content: flex-end;
@@ -2871,6 +2908,11 @@ html {
   padding: 24px;
 }
 
+.relocation-list-content > h2 {
+  margin: 4px 0 22px;
+  font-size: 24px;
+}
+
 @media (max-width: 850px) {
   .sidebar .nav > .service-nav-group {
     flex: 0 0 100%;
@@ -2898,6 +2940,12 @@ html {
   }
 
   .funeral-service-group .case-archive-navigation {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding-left: 8px;
+  }
+
+  .relocation-service-group .case-archive-navigation {
     grid-column: 1 / -1;
     margin: 0;
     padding-left: 8px;

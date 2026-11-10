@@ -610,7 +610,14 @@ html {
   #ceremony #paperItemsTable, #ceremony #paperMoneyTable { min-width: 0; }
   #ceremony .paper-compact .add { display: block; text-align: left; }
 
-/* 後續關懷的祖先牌位以完整表單框呈現。 */
+/* 後續關懷的祖先牌位移至日期下方，牌位地址排列在同一列。 */
+#venue .aftercare-choice {
+  grid-column: 1 / span 4;
+}
+
+#venue .ancestor-tablet-address-field {
+  grid-column: 5 / -1;
+}
 
 #ceremony .paper-money-row { grid-column: 1 / span 5; }
 
@@ -2404,6 +2411,179 @@ html {
   display: grid;
   gap: 16px;
   min-width: 0;
+}
+
+.relocation-form-tabs {
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+}
+
+.relocation-form-panel {
+  display: none;
+  gap: 16px;
+  min-width: 0;
+}
+
+.relocation-form-panel.active {
+  display: grid;
+}
+
+.relocation-kinship-card {
+  min-height: 430px;
+}
+
+.relocation-kinship-sheet-wrap {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.relocation-kinship-sheet {
+  min-width: 1080px;
+  padding: 4px 14px 20px;
+  color: #111827;
+}
+
+.relocation-kinship-sheet > h2 {
+  margin: 0 0 22px;
+  color: #111827;
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: .18em;
+}
+
+.relocation-kinship-generations {
+  display: grid;
+  gap: 24px;
+}
+
+.relocation-kinship-generation {
+  position: relative;
+  display: grid;
+  grid-template-columns: 100px repeat(7, minmax(115px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.relocation-kinship-generation:not(:last-child)::after {
+  position: absolute;
+  right: 10px;
+  bottom: -13px;
+  left: 118px;
+  border-bottom: 1px solid #64748b;
+  content: '';
+}
+
+.relocation-kinship-row-labels {
+  display: grid;
+  grid-template-rows: 32px 48px;
+  align-items: center;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.relocation-kinship-person {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 32px 48px;
+  border: 1px solid #334155;
+  background: #fff;
+}
+
+.relocation-kinship-person input {
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 5px 7px;
+  text-align: center;
+}
+
+.relocation-kinship-person input + input {
+  border-top: 1px solid #94a3b8;
+}
+
+.relocation-kinship-generation:not(:last-child) .relocation-kinship-person::after,
+.relocation-kinship-generation:last-child .relocation-kinship-person:nth-child(5)::after {
+  position: absolute;
+  right: 50%;
+  bottom: -22px;
+  z-index: 2;
+  color: #111827;
+  content: '▼';
+  font-size: 11px;
+  transform: translateX(50%);
+}
+
+.relocation-kinship-applicant {
+  display: grid;
+  grid-template-columns: 100px repeat(7, minmax(115px, 1fr));
+  gap: 18px;
+  justify-items: center;
+  width: 100%;
+  margin: 24px 0 14px;
+}
+
+.relocation-kinship-applicant input {
+  grid-column: 5;
+  grid-row: 1;
+  width: 180px;
+  min-height: 58px;
+  border: 3px double #334155;
+  border-radius: 0;
+  text-align: center;
+}
+
+.relocation-kinship-applicant strong {
+  grid-column: 5;
+  grid-row: 2;
+  margin-top: 7px;
+  font-size: 22px;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+
+.relocation-kinship-statement {
+  max-width: 850px;
+  margin: 0 auto;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.relocation-kinship-statement p {
+  margin: 0;
+}
+
+.relocation-kinship-count {
+  width: 58px;
+  min-height: 30px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.relocation-kinship-statement label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.relocation-kinship-statement label input {
+  width: 240px;
+  min-height: 36px;
+  border: 0;
+  border-bottom: 1px solid #111827;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.relocation-kinship-statement label span {
+  font-weight: 400;
 }
 
 .relocation-form-card {

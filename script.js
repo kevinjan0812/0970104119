@@ -1435,6 +1435,12 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     // 後續關懷：祖先牌位保留有／無外框，祖塔改回可自由填寫。
     const tabletField = fieldFor(venue, 'ancestor_tablet');
     tabletField?.classList.add('aftercare-choice');
+    if (tabletField && !venue.querySelector('[name="ancestor_tablet_address"]')) {
+      const addressField = document.createElement('div');
+      addressField.className = 'field ancestor-tablet-address-field';
+      addressField.innerHTML = '<label>牌位地址</label><input name="ancestor_tablet_address">';
+      tabletField.after(addressField);
+    }
     const ancestorTower = venue.querySelector('[name="ancestor_tower"]');
     if (ancestorTower?.tagName === 'SELECT') {
       const input = document.createElement('input');
@@ -1450,6 +1456,36 @@ document.querySelector('#arrangement [name="staff_eldest_grandson"]')?.closest('
     const notes = notesField?.querySelector('textarea[name="notes"]');
     if (notes) {
       configureAutoGrowingTextarea(notes);
+    }
+
+    // 服務履歷獨立成分頁，欄位本身仍保留在案件表單內，沿用既有儲存與載入。
+    const tabs = document.querySelector('.section > .tabs');
+    const venueTab = tabs?.querySelector('[data-tab="venue"]');
+    const caseForm = document.getElementById('caseForm');
+    if (tabs && venueTab && caseForm && notesField && !document.getElementById('service-history-pane')) {
+      const historyTab = document.createElement('button');
+      historyTab.type = 'button';
+      historyTab.dataset.tab = 'service-history-pane';
+      historyTab.textContent = '服務履歷';
+      venueTab.after(historyTab);
+
+      const historyPane = document.createElement('div');
+      historyPane.id = 'service-history-pane';
+      historyPane.className = 'pane service-history-pane';
+      const historyGrid = document.createElement('div');
+      historyGrid.className = 'form-grid';
+      historyGrid.append(notesField);
+      historyPane.append(historyGrid);
+      document.getElementById('venue')?.after(historyPane);
+
+      historyTab.addEventListener('click', () => {
+        tabs.querySelectorAll('button[data-tab]').forEach(button =>
+          button.classList.toggle('active', button === historyTab)
+        );
+        caseForm.querySelectorAll(':scope > .pane').forEach(pane =>
+          pane.classList.toggle('active', pane === historyPane)
+        );
+      });
     }
   })();
 
@@ -2821,7 +2857,7 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
   const status = document.getElementById('caseStatus');
   if (!title || !status) return;
   const refreshVisibility = () => {
-    status.hidden = !/^(新增案件|編輯案件)/.test(title.textContent.trim());
+    status.hidden = !/^(新增案件|編輯案件|新增遷葬案件|編輯遷葬案件)/.test(title.textContent.trim());
   };
   new MutationObserver(refreshVisibility).observe(title, {
     childList: true,
@@ -4322,6 +4358,7 @@ document.querySelector('.top .actions button[onclick*="window.print"]')?.remove(
     data.hundred_days_summary = `百日：${value('hundred_days')}`;
     data.anniversary_summary = `對年：${value('anniversary')}`;
     data.ancestor_tablet_summary = `祖先牌位：${value('ancestor_tablet')}`;
+    data.ancestor_tablet_address_summary = `牌位地址：${value('ancestor_tablet_address')}`;
     data.ancestor_tower_summary = `祖塔：${value('ancestor_tower')}`;
     data.tower_slot_summary = `塔位：${value('tower_slot')}`;
 
@@ -6274,7 +6311,7 @@ document.querySelector('[name="ceremony_offerings"]')
     }
 
     control.lang = 'zh-Hant-TW';
-    const requestedInputMode = control.classList.contains('relocation-time-digits')
+    const requestedInputMode = control.classList.contains('relocation-time-digits') || control.classList.contains('relocation-kinship-count')
       ? 'numeric'
       : control.classList.contains('exact-date-input') && prefersMobileDateKeyboard()
         ? 'numeric'
@@ -6361,6 +6398,12 @@ document.querySelector('[name="ceremony_offerings"]')
   relocationNewView.setAttribute('aria-label', '遷葬服務案件表單');
   relocationNewView.innerHTML = `
     <form id="relocationCaseForm" class="relocation-case-form">
+      <div class="tabs relocation-form-tabs" role="tablist" aria-label="遷葬案件分頁">
+        <button type="button" class="active" role="tab" aria-selected="true" data-relocation-form-tab="basic">基本資料</button>
+        <button type="button" role="tab" aria-selected="false" data-relocation-form-tab="kinship">親屬系統表</button>
+      </div>
+
+      <div class="relocation-form-panel active" data-relocation-form-panel="basic" role="tabpanel">
       <section class="relocation-form-card relocation-workflow-card">
         <div class="relocation-workflow-heading">流程檢核</div>
         <div class="relocation-workflow-checks">
@@ -6435,6 +6478,44 @@ document.querySelector('[name="ceremony_offerings"]')
         <button type="button" class="btn relocation-form-clear">清除</button>
         <button type="submit" class="btn primary relocation-form-save">儲存案件</button>
       </div>
+      </div>
+
+      <div class="relocation-form-panel" data-relocation-form-panel="kinship" role="tabpanel" hidden>
+        <section class="relocation-form-card relocation-kinship-card">
+          <div class="relocation-kinship-sheet-wrap">
+            <div class="relocation-kinship-sheet">
+              <h2>親屬關係表</h2>
+              <div class="relocation-kinship-generations">
+                ${Array.from({ length: 8 }, (_, generationIndex) => `
+                  <div class="relocation-kinship-generation" data-kinship-generation="${generationIndex}">
+                    <div class="relocation-kinship-row-labels"><span>關係或稱謂</span><span>姓名</span></div>
+                    ${Array.from({ length: 7 }, (_, columnIndex) => {
+                      const personIndex = generationIndex * 7 + columnIndex;
+                      return `
+                        <div class="relocation-kinship-person" data-kinship-person="${personIndex}">
+                          <input data-kinship-field="relation" aria-label="第 ${generationIndex + 1} 代第 ${columnIndex + 1} 位關係或稱謂">
+                          <input data-kinship-field="name" aria-label="第 ${generationIndex + 1} 代第 ${columnIndex + 1} 位姓名">
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="relocation-kinship-applicant">
+                <input data-kinship-applicant aria-label="申請人姓名">
+                <strong>【申請人】</strong>
+              </div>
+
+              <div class="relocation-kinship-statement">
+                <p>以上申請起掘共 <input class="relocation-kinship-count" data-kinship-count inputmode="numeric" pattern="[0-9]*" maxlength="3" aria-label="申請起掘人數"> 位，確係為本人親屬，且填寫內容確實無訛，如有偽造、冒名或嗣後有第三人提出異議或主張時，概與貴管理所無涉，本人願負一切法律責任。</p>
+                <p>此致　桃園市政府殯葬管理所</p>
+                <label>具結人：<input data-kinship-declarant aria-label="具結人姓名"><span>（簽名或蓋章）</span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </form>
   `;
 
@@ -6444,6 +6525,23 @@ document.querySelector('[name="ceremony_offerings"]')
   formSection.before(relocationNewView, relocationListView);
 
   const relocationForm = relocationNewView.querySelector('#relocationCaseForm');
+  const relocationFormTabs = [...relocationForm.querySelectorAll('[data-relocation-form-tab]')];
+  const relocationFormPanels = [...relocationForm.querySelectorAll('[data-relocation-form-panel]')];
+  const showRelocationFormTab = name => {
+    relocationFormTabs.forEach(button => {
+      const active = button.dataset.relocationFormTab === name;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+    relocationFormPanels.forEach(panel => {
+      const active = panel.dataset.relocationFormPanel === name;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+  };
+  relocationFormTabs.forEach(button => {
+    button.addEventListener('click', () => showRelocationFormTab(button.dataset.relocationFormTab));
+  });
   const relocationFamilyBody = relocationForm.querySelector('.relocation-family-table tbody');
   const addRelocationFamilyRow = (person = {}) => {
     const row = document.createElement('tr');
@@ -6468,11 +6566,14 @@ document.querySelector('[name="ceremony_offerings"]')
   };
   relocationForm.querySelector('.relocation-family-add')?.addEventListener('click', () => addRelocationFamilyRow());
   relocationForm.addEventListener('input', event => {
-    const input = event.target.closest?.('.relocation-time-digits');
+    setCaseStatus('輸入中');
+    const input = event.target.closest?.('.relocation-time-digits, .relocation-kinship-count');
     if (!input) return;
-    const digits = input.value.replace(/\D/g, '').slice(0, 4);
+    const maximumLength = input.classList.contains('relocation-kinship-count') ? 3 : 4;
+    const digits = input.value.replace(/\D/g, '').slice(0, maximumLength);
     if (input.value !== digits) input.value = digits;
   });
+  relocationForm.addEventListener('change', () => setCaseStatus('輸入中'));
 
   const relocationRecordsKey = 'relocation-case-records-v1';
   const readRelocationRecords = () => {
@@ -6508,7 +6609,16 @@ document.querySelector('[name="ceremony_offerings"]')
       const get = field => String(row.querySelector(`[data-family-field="${field}"]`)?.value || '').trim();
       return { title: get('title'), name: get('name'), lunarBirth: get('lunarBirth'), solarBirth: get('solarBirth') };
     }).filter(person => Object.values(person).some(Boolean));
-    return { fields, workflow, choices, contacts, family, updatedAt: new Date().toISOString() };
+    const kinship = {
+      people: [...relocationForm.querySelectorAll('[data-kinship-person]')].map(person => ({
+        relation: String(person.querySelector('[data-kinship-field="relation"]')?.value || '').trim(),
+        name: String(person.querySelector('[data-kinship-field="name"]')?.value || '').trim()
+      })),
+      applicant: String(relocationForm.querySelector('[data-kinship-applicant]')?.value || '').trim(),
+      excavationCount: String(relocationForm.querySelector('[data-kinship-count]')?.value || '').trim(),
+      declarant: String(relocationForm.querySelector('[data-kinship-declarant]')?.value || '').trim()
+    };
+    return { fields, workflow, choices, contacts, family, kinship, updatedAt: new Date().toISOString() };
   };
 
   const formatRelocationDate = value => {
@@ -6646,6 +6756,7 @@ document.querySelector('[name="ceremony_offerings"]')
     relocationForm.reset();
     relocationFamilyBody.replaceChildren();
     relocationForm.dataset.editingCaseNo = '';
+    showRelocationFormTab('basic');
   };
 
   const loadRelocationRecord = record => {
@@ -6674,7 +6785,22 @@ document.querySelector('[name="ceremony_offerings"]')
     (Array.isArray(record?.family) ? record.family : [])
       .filter(person => person && Object.values(person).some(value => String(value || '').trim()))
       .forEach(addRelocationFamilyRow);
+    [...relocationForm.querySelectorAll('[data-kinship-person]')].forEach((person, index) => {
+      const savedPerson = record?.kinship?.people?.[index] || {};
+      person.querySelector('[data-kinship-field="relation"]').value = savedPerson.relation || '';
+      person.querySelector('[data-kinship-field="name"]').value = savedPerson.name || '';
+    });
+    const kinshipFields = {
+      '[data-kinship-applicant]': record?.kinship?.applicant,
+      '[data-kinship-count]': record?.kinship?.excavationCount,
+      '[data-kinship-declarant]': record?.kinship?.declarant
+    };
+    Object.entries(kinshipFields).forEach(([selector, value]) => {
+      const input = relocationForm.querySelector(selector);
+      if (input) input.value = value || '';
+    });
     relocationForm.dataset.editingCaseNo = record?.fields?.relocation_case_no || '';
+    setCaseStatus('已儲存');
   };
 
   const renderRelocationList = () => {
@@ -6736,6 +6862,9 @@ document.querySelector('[name="ceremony_offerings"]')
     if (topActions) topActions.style.display = showFormActions ? 'flex' : 'none';
     const headerTitle = document.querySelector('.top h1');
     if (headerTitle) headerTitle.textContent = title;
+    if (showFormActions) {
+      setCaseStatus(relocationForm.dataset.editingCaseNo ? '已儲存' : '輸入中');
+    }
     view.classList.add('active');
     button.classList.add('active');
     relocation.group.open = true;
@@ -6768,6 +6897,7 @@ document.querySelector('[name="ceremony_offerings"]')
     relocationForm.dataset.editingCaseNo = currentCaseNo;
     const headerTitle = document.querySelector('.top h1');
     if (headerTitle) headerTitle.textContent = `編輯遷葬案件｜${relocationValue('relocation_case_name')}`;
+    setCaseStatus('已儲存');
     window.flash?.('已儲存遷葬案件。');
     renderRelocationList();
   });

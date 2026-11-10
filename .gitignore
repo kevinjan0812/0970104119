@@ -7,3 +7,6 @@ Desktop.ini
 
 # Codex 產生的 Word 範本渲染與版面驗證暫存檔。
 .codex-docx-relocation/
+
+# PDF 欄位與版面檢查產生的暫存影像。
+tmp/pdfs/

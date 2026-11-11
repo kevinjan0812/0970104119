@@ -4067,6 +4067,19 @@ html {
     background: #115d54;
     color: #fff;
   }
+  .overview-row .due-service {
+    display: inline-flex;
+    width: fit-content;
+    margin-right: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .overview-row .due-service.due-service-relocation {
+    background: #7c3aed;
+    color: #fff;
+  }
   .overview-row .due-date { color: var(--muted); font-size: 14px; white-space: nowrap; }
   @media (max-width: 560px) {
     .overview-row.due-row { grid-template-columns: 1fr auto; gap: 8px; }

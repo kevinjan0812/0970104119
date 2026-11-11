@@ -5767,6 +5767,12 @@ document.querySelector('[name="ceremony_offerings"]')
       return Array.isArray(rows) ? rows : [];
     } catch { return []; }
   };
+  const relocationRecords = () => {
+    try {
+      const rows = JSON.parse(localStorage.getItem('relocation-case-records-v1') || '[]');
+      return Array.isArray(rows) ? rows : [];
+    } catch { return []; }
+  };
   const showDueOverview = () => {
     if (!overview) return;
     const title = document.querySelector('.top h1');
@@ -5799,7 +5805,13 @@ document.querySelector('[name="ceremony_offerings"]')
       [['funeral_date', '出殯'], ['hundred_days', '百日'], ['anniversary', '對年']].forEach(([key, label]) => {
         const date = parseDate(fields[key]);
         if (date && isWithin90Days(date)) {
-          items.push({ date, label, fields, detail: fields.case_name || '未命名案件' });
+          items.push({
+            date,
+            label,
+            caseNo: fields.case_no || '',
+            detail: fields.case_name || '未命名案件',
+            service: 'funeral'
+          });
         }
       });
       (Array.isArray(record?.schedules) ? record.schedules : []).forEach(schedule => {
@@ -5811,8 +5823,27 @@ document.querySelector('[name="ceremony_offerings"]')
           date,
           label: scheduleItem,
           dateLabel: '功德法事',
-          fields,
-          detail: caseName
+          caseNo: fields.case_no || '',
+          detail: caseName,
+          service: 'funeral'
+        });
+      });
+    });
+    relocationRecords().forEach(record => {
+      const fields = record?.fields || {};
+      [
+        ['relocation_date', '遷葬'],
+        ['relocation_tower_date', '晉塔'],
+        ['relocation_plant_burial_date', '環保葬']
+      ].forEach(([key, label]) => {
+        const date = parseDate(fields[key]);
+        if (!date || !isWithin90Days(date)) return;
+        items.push({
+          date,
+          label,
+          caseNo: fields.relocation_case_no || '',
+          detail: fields.relocation_case_name || '未命名遷葬案件',
+          service: 'relocation'
         });
       });
     });
@@ -5827,7 +5858,7 @@ document.querySelector('[name="ceremony_offerings"]')
       ['90 天內到期', items.length]
     ]
       .map(([label, value]) => `<div class="card"><div class="metric">${label}</div><div class="number">${value}</div></div>`).join('');
-    target.innerHTML = items.length ? '' : '<p class="empty-list">未來 90 天沒有出殯、功德法事、百日或對年的到期事項。</p>';
+    target.innerHTML = items.length ? '' : '<p class="empty-list">未來 90 天沒有禮儀或遷葬服務的到期事項。</p>';
     items.forEach(item => {
       const row = document.createElement('div');
       row.className = 'overview-row due-row';
@@ -5836,7 +5867,10 @@ document.querySelector('[name="ceremony_offerings"]')
         : item.label === '出殯'
           ? ' due-type-funeral'
           : '';
-      row.innerHTML = `<strong>${item.fields.case_no || '未編號'}</strong><div><span class="due-type${typeClass}">${item.label}</span>${item.detail}</div><span class="due-date">${item.dateLabel || item.label}：${item.date.getFullYear()}/${String(item.date.getMonth() + 1).padStart(2, '0')}/${String(item.date.getDate()).padStart(2, '0')}</span>`;
+      const serviceBadge = item.service === 'relocation'
+        ? '<span class="due-service due-service-relocation">遷葬服務</span>'
+        : '';
+      row.innerHTML = `<strong>${item.caseNo || '未編號'}</strong><div>${serviceBadge}<span class="due-type${typeClass}">${item.label}</span>${item.detail}</div><span class="due-date">${item.dateLabel || item.label}：${item.date.getFullYear()}/${String(item.date.getMonth() + 1).padStart(2, '0')}/${String(item.date.getDate()).padStart(2, '0')}</span>`;
       target.append(row);
     });
   };
@@ -5845,6 +5879,9 @@ document.querySelector('[name="ceremony_offerings"]')
     dueButton.addEventListener('click', () => window.setTimeout(showDueOverview, 0));
   }
   window.addEventListener('funeral:cloud-synced', () => {
+    if (overview?.classList.contains('active')) showDueOverview();
+  });
+  window.addEventListener('relocation:cloud-synced', () => {
     if (overview?.classList.contains('active')) showDueOverview();
   });
 
